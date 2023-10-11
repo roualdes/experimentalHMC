@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "experimentalhmc"
+readme = "README.md"
+license = { text = "BSD-3-Clause" }
+authors = [
+    { name = "Edward Roualdes", email = "eroualdes@csuchico.edu" },
+]
+requires-python = ">=3.9"
+dependencies = ["numpy"]
+dynamic = ["version"]
+
+[tool.setuptools.dynamic]
+version = { attr = "experimentalhmc.__version.__version__" }
+
+[tool.setuptools]
+packages = ["experimentalhmc"]
+
+[tool.setuptools.package-data]
+"experimentalhmc" = ["py.typed"]
+
+[project.optional-dependencies]
+test = ["pandas", "pytest", "pytest-cov"]
+
+[tool.isort]
+profile = "black"
