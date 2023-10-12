@@ -1,10 +1,10 @@
 from .__version import __version__
+from .convergence import ess_basic, ess_mean
+from .leapfrog import leapfrog
+from .onlinemad import OnlineMAD
 from .onlinemean import OnlineMean
 from .onlinemeanvar import OnlineMeanVar
 from .onlinequantile import OnlineQuantile
-from .onlinemad import OnlineMAD
-
-from .leapfrog import leapfrog
 
 __all__ = [
     "OnlineMean",
@@ -12,4 +12,6 @@ __all__ = [
     "OnlineQuantile",
     "OnlineMAD",
     "leapfrog",
+    "ess_basic",
+    "ess_mean",
 ]
