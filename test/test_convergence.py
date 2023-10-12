@@ -28,3 +28,8 @@ def test_convergence():
     draws = np.reshape(x, (20, 1, 4))
 
     assert np.isclose(ehmc.ess_mean(draws), 75.95232, atol = 1e-5)
+    assert np.isclose(ehmc.ess_tail(draws), 65.7112, atol = 1e-5)
+    assert np.isclose(ehmc.ess_quantile(draws, 0.75), 89.15154, atol = 1e-5)
+    assert np.isclose(ehmc.ess_std(draws), 68.86159, atol = 1e-5)
+
+    assert np.isclose(ehmc.rhat_basic(draws), 0.9629473, atol = 1e-5)
