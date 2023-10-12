@@ -19,4 +19,4 @@ class OnlineMAD():
             self.outermed[d].update(np.abs(x[d] - median))
 
     def mad(self):
-        return [self.outermed[d].quantile() for d in range(self.D)]
+        return np.asarray([self.outermed[d].quantile() for d in range(self.D)])
