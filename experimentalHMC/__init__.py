@@ -1,5 +1,5 @@
 from .__version import __version__
-from .convergence import ess_basic, ess_mean, ess_tail, ess_quantile, ess_std, rhat_basic
+from .convergence import ess_basic, ess_mean, ess_tail, ess_quantile, ess_std, rhat_basic, rhat_max, mcse_mean, mcse_std
 from .leapfrog import leapfrog
 from .onlinemad import OnlineMAD
 from .onlinemean import OnlineMean
@@ -18,4 +18,7 @@ __all__ = [
     "ess_quantile",
     "ess_std",
     "rhat_basic",
+    "rhat_max",
+    "mcse_mean",
+    "mcse_std"
 ]

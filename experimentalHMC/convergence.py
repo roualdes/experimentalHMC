@@ -2,7 +2,6 @@ import math
 
 import numpy as np
 
-
 def fft_nextgoodsize(N):
     if N <= 2:
         return 2
@@ -41,10 +40,13 @@ def isconstant(x):
     return np.isclose(mn, mx)
 
 
-def ess(x):
+def _ess(x):
     niterations, nchains = np.shape(x)
 
-    if niterations < 3 or np.any(np.isnan(x)):
+    if niterations < 3:
+        return np.nan
+
+    if np.any(np.isnan(x)):
         return np.nan
 
     if np.any(np.isinf(x)):
@@ -135,7 +137,7 @@ def ess_mean(x):
     N, D, C = np.shape(x)
     esses = np.zeros(D)
     for d in range(D):
-        esses[d] = ess(splitchains(x[:, d, :]))
+        esses[d] = _ess(splitchains(x[:, d, :]))
     return esses
 
 
@@ -143,7 +145,7 @@ def ess_basic(x):
     N, D, C = np.shape(x)
     esses = np.zeros(D)
     for d in range(D):
-        esses[d] = ess(x[:, d, :])
+        esses[d] = _ess(x[:, d, :])
     return esses
 
 
@@ -155,8 +157,8 @@ def ess_tail(x):
     N, D, C = np.shape(x)
     esses = np.zeros(D)
     for d in range(D):
-        essq05 = ess(splitchains(I05[:, d, :]))
-        essq95 = ess(splitchains(I95[:, d, :]))
+        essq05 = _ess(splitchains(I05[:, d, :]))
+        essq95 = _ess(splitchains(I95[:, d, :]))
         esses[d] = np.minimum(essq05, essq95)
     return esses
 
@@ -168,7 +170,7 @@ def ess_quantile(x, prob: float = 0.5):
     N, D, C = np.shape(x)
     esses = np.zeros(D)
     for d in range(D):
-        esses[d] = ess(splitchains(I50[:, d, :]))
+        esses[d] = _ess(splitchains(I50[:, d, :]))
     return esses
 
 
@@ -177,11 +179,16 @@ def ess_std(x):
     N, D, C = np.shape(x)
     esses = np.zeros(D)
     for d in range(D):
-        esses[d] = ess(splitchains(np.abs(x[:, d, :] - m)))
+        esses[d] = _ess(splitchains(np.abs(x[:, d, :] - m)))
     return esses
 
 
-def rhat(x):
+def _rhat(x):
+    niterations, nchains = np.shape(x)
+
+    if niterations < 3:
+        return np.nan
+
     if np.any(np.isnan(x)):
         return np.nan
 
@@ -191,7 +198,6 @@ def rhat(x):
     if isconstant(x):
         return np.nan
 
-    niterations, nchains = np.shape(x)
     chain_mean = np.mean(x, axis = 0)
     chain_var = np.var(x, axis = 0, ddof = 1)
     var_between = niterations * np.var(chain_mean, ddof = 1)
@@ -204,20 +210,97 @@ def rhat_basic(x):
     N, D, C = np.shape(x)
     rhats = np.zeros(D)
     for d in range(D):
-        rhats[d] = rhat(splitchains(x[:, d, :]))
+        rhats[d] = _rhat(splitchains(x[:, d, :]))
     return rhats
 
 
-def fold(x):
-    return np.abs(x - np.median(x))
+def tiedrank(x):
+    # Adapted from StatsBase
+    # https://github.com/JuliaStats/StatsBase.jl/blob/master/src/ranking.jl
+
+    # Copyright (c) 2012-2016: Dahua Lin, Simon Byrne, Andreas Noack,
+    # Douglas Bates, John Myles White, Simon Kornblith, and other contributors.
+
+    # Permission is hereby granted, free of charge, to any person obtaining
+    # a copy of this software and associated documentation files (the
+    # "Software"), to deal in the Software without restriction, including
+    # without limitation the rights to use, copy, modify, merge, publish,
+    # distribute, sublicense, and/or sell copies of the Software, and to
+    # permit persons to whom the Software is furnished to do so, subject to
+    # the following conditions:
+    #
+    # The above copyright notice and this permission notice shall be
+    # included in all copies or substantial portions of the Software.
+    #
+    # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    # EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    # MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+    # NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+    # LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+    # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+    x = x.ravel()
+    n = np.size(x)
+    p = np.argsort(x)
+    rks = np.zeros(n)
+
+    if n > 0:
+        v = x[p[0]]
+
+        s = 0  # starting index of current range
+        e = 1  # pass-by-end index of current range
+        while e < n:
+            cx = x[p[e]]
+            if cx != v:
+                # fill average rank to s : e-1
+                ar = (s + e + 1) / 2
+                for i in range(s, e):
+                    rks[p[i]] = ar
+                # switch to next range
+                s = e
+                v = cx
+            e += 1
+
+        # the last range (e == n+1)
+        ar = (s + n + 1) / 2
+        for i in range(s, n):
+            rks[p[i]] = ar
+
+    return rks
 
 
-# def tiedrank(x):
-#     x = x.ravel()
+def zscale(x):
+    r = tiedrank(x)
+    z = normal_quantile((r - 0.375) / (np.size(x) + 0.25)) # Blom (1958) (6.10.3)
+    return np.reshape(z, np.shape(x))
 
-#     n = np.size(x)
-#     p = np.s
-# array = numpy.array([4,2,7,1])
-# temp = array.argsort()
-# ranks = numpy.empty_like(temp)
-# ranks[temp] = numpy.arange(len(array))
+
+def rhat_max(x):
+    m = np.median(x)
+    N, D, C = np.shape(x)
+    rhats = np.zeros(D)
+    for d in range(D):
+        rhat_bulk = _rhat(zscale(splitchains(x[:, d, :])))
+        rhat_tail = _rhat(zscale(splitchains(np.abs(x[:, d, :] - m))))
+        rhats[d] = np.maximum(rhat_bulk, rhat_tail)
+    return rhats
+
+
+def mcse_mean(x):
+    N, D, C = np.shape(x)
+    mcses = np.zeros(D)
+    for d in range(D):
+        sd = np.std(x[:, d, :], ddof = 1)
+        sqrt_ess_mean = np.sqrt(_ess(splitchains(x[:, d, :])))
+        mcses[d] = sd / sqrt_ess_mean
+    return mcses
+
+
+def mcse_std(x):
+    xc = x - np.mean(x)
+    ess = ess_mean(np.abs(xc))
+    Evar = np.mean(xc ** 2)
+    varvar = (np.mean(xc ** 4) - Evar ** 2) / ess
+    varsd = varvar / Evar / 4
+    return np.sqrt(varsd)

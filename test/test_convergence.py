@@ -33,3 +33,16 @@ def test_convergence():
     assert np.isclose(ehmc.ess_std(draws), 68.86159, atol = 1e-5)
 
     assert np.isclose(ehmc.rhat_basic(draws), 0.9629473, atol = 1e-5)
+    assert np.isclose(ehmc.rhat_max(draws), 1.009791, atol = 1e-3) # why 1e-3
+
+    assert np.isclose(ehmc.mcse_mean(draws), 0.1010431, atol = 1e-5)
+    assert np.isclose(ehmc.mcse_std(draws), 0.07730264, atol = 1e-5)
+
+    # not enough draws
+    assert np.isnan(ehmc.ess_mean(draws[0:1, :, :]))
+    assert np.isnan(ehmc.rhat_basic(draws[0:1, :, :]))
+
+    # NaN in draws
+    draws[0, 0, 0] = np.nan
+    assert np.isnan(ehmc.ess_mean(draws))
+    assert np.isnan(ehmc.rhat_basic(draws))
