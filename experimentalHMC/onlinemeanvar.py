@@ -4,10 +4,10 @@ import numpy.typing as npt
 FloatArray = npt.NDArray[np.float64]
 
 class OnlineMeanVar():
-    def __init__(self, d: int = 1):
+    def __init__(self, chains: int = 1, dims: int = 1):
         self._N = 0
-        self._m = np.zeros(d)
-        self._v = np.zeros(d)
+        self._m = np.zeros(shape = (chains, dims))
+        self._v = np.zeros(shape = (chains, dims))
 
     def update(self, x: FloatArray):
         self._N += 1

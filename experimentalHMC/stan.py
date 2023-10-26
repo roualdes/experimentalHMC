@@ -1,9 +1,8 @@
 from .dualaverage import DualAverage
-from .
+from .windowedaptation import WindowedAdaptation
+from .onlinemetric
 
 import numpy as np
-
-
 
 class Stan():
     def __init__(self, dims,
