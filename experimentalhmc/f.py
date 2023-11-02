@@ -12,6 +12,14 @@ f = lib.f
 f.restype = ctypes.c_void_p
 f.argtypes = [double_array, ctypes.c_int, double_array]
 
-inv_normal = lib.inv_normal
-inv_normal.restype = ctypes.c_double
-inv_normal.argtypes = [ctypes.c_double]
+
+_inv_std_normal = lib.inv_std_normal
+_inv_std_normal.restype = ctypes.c_int
+_inv_std_normal.argtypes = [ctypes.c_double, ctypes.POINTER(ctypes.c_double)]
+
+def inv_std_normal(p):
+    z = ctypes.pointer(ctypes.c_double())
+    err = _inv_std_normal(p, z)
+    if err == -1:
+        return np.nan
+    return z.contents.value

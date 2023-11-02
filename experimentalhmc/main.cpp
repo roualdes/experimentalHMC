@@ -1,4 +1,4 @@
-#include "inv_std_normal.cpp"
+#include "inv_phi.cpp"
 #include <iostream>
 #include <Eigen/Dense>
 
@@ -12,7 +12,7 @@ extern "C" {
     out[3] = q(0) + q(0);
   }
 
-  double inv_normal(const double p) {
-    return inv_std_normal(p);
+  int inv_std_normal(const double p, double* z) {
+    return inv_phi(p, z);
   }
 }

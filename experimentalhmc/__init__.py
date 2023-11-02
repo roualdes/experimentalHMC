@@ -7,7 +7,7 @@ from .onlinemean import OnlineMean
 from .onlinemeanvar import OnlineMeanVar
 from .onlinequantile import OnlineQuantile
 
-from .f import f, inv_normal
+from .f import f, inv_std_normal
 
 __all__ = [
     "DualAverage",
@@ -27,5 +27,5 @@ __all__ = [
     "mcse_mean",
     "mcse_std",
     "f",
-    "inv_normal",
+    "inv_std_normal",
 ]

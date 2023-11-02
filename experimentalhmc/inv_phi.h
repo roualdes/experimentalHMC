@@ -1,5 +1,5 @@
-#ifndef INVSTDNORMAL_H
-#define INVSTDNORMAL_H
+#ifndef INVPHI_H
+#define INVPHI_H
 
 /// \file inv_std_normal.h
 
@@ -10,7 +10,7 @@ extern "C" {
 #include <math.h>
 #endif
 
-  extern double inv_std_normal(const double p);
+  extern int inv_phi(const double p, double* z);
 
 #ifdef __cplusplus
 }

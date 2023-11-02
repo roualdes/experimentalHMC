@@ -1,6 +1,9 @@
-#include "inv_std_normal.h"
+#include "inv_phi.h"
 
-double inv_std_normal(const double p) {
+// Adapted from
+// Wichura, M. J. (1988). Algorithm AS 241: The Percentage Points of the Normal Distribution. Journal of the Royal Statistical Society. Series C (Applied Statistics), 37(3), 477–484. https://doi.org/10.2307/2347330
+
+int inv_phi(const double p, double* z) {
   double q = p - 0.5;
 
   double r;
@@ -25,11 +28,10 @@ double inv_std_normal(const double p) {
       B6 = 2.8729085735721942674E4,
       B7 = 5.2264952788528545610E3;
 
-    return q * (((((((A7 * r + A6) * r + A5) * r + A4) * r + A3) * r + A2) * r + A1) * r + A0) / (((((((B7 * r + B6) * r + B5) * r + B4) * r + B3) * r + B2) * r + B1) * r + 1.0);
+     *z = q * (((((((A7 * r + A6) * r + A5) * r + A4) * r + A3) * r + A2) * r + A1) * r + A0) / (((((((B7 * r + B6) * r + B5) * r + B4) * r + B3) * r + B2) * r + B1) * r + 1.0);
+     return 0;
 
   } else {
-
-    double ppnd16;
 
     if (q < 0.0) {
 
@@ -43,7 +45,7 @@ double inv_std_normal(const double p) {
 
     if (r <= 0.0) {
 
-      return -1.0;
+      return -1;
 
     }
 
@@ -68,7 +70,7 @@ double inv_std_normal(const double p) {
         D6 = 5.47593808499534494600E-4,
         D7 = 1.05075007164441684324E-9;
 
-      ppnd16 = (((((((C7 * r + C6) * r + C5) * r + C4) * r + C3) * r + C2) *r + C1) * r + C0) / (((((((D7 * r + D6) * r + D5) * r + D4) * r + D3) * r + D2) * r + D1) * r + 1.0);
+      *z = (((((((C7 * r + C6) * r + C5) * r + C4) * r + C3) * r + C2) *r + C1) * r + C0) / (((((((D7 * r + D6) * r + D5) * r + D4) * r + D3) * r + D2) * r + D1) * r + 1.0);
     } else {
       r -= 5.0;
 
@@ -88,11 +90,11 @@ double inv_std_normal(const double p) {
         F6 = 1.42151175831644588870E-7,
         F7 = 2.04426310338993978564E-15;
 
-      ppnd16 = (((((((E7 * r + E6) * r + E5) * r + E4) * r + E3) * r + E2) *r + E1) * r + E0) / (((((((F7 * r + F6) * r + F5) * r + F4) * r + F3) * r + F2) * r + F1) * r + 1.0);
+      *z = (((((((E7 * r + E6) * r + E5) * r + E4) * r + E3) * r + E2) *r + E1) * r + E0) / (((((((F7 * r + F6) * r + F5) * r + F4) * r + F3) * r + F2) * r + F1) * r + 1.0);
     }
 
-    if (q < 0) ppnd16 = -ppnd16;
+    if (q < 0) *z = -*z;
 
-    return ppnd16;
+    return 0;
   }
 }
