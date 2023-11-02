@@ -11,3 +11,7 @@ lib = ctypes.CDLL(str(dir / "libmain.so"))
 f = lib.f
 f.restype = ctypes.c_void_p
 f.argtypes = [double_array, ctypes.c_int, double_array]
+
+inv_normal = lib.inv_normal
+inv_normal.restype = ctypes.c_double
+inv_normal.argtypes = [ctypes.c_double]
