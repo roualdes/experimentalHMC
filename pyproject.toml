@@ -1,9 +1,10 @@
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+requires = ["meson-python"]
+build-backend = "mesonpy"
 
 [project]
 name = "experimentalhmc"
+version = "0.0.1"
 readme = "README.md"
 license = { text = "BSD-3-Clause" }
 authors = [
@@ -11,10 +12,6 @@ authors = [
 ]
 requires-python = ">=3.9"
 dependencies = ["numpy"]
-dynamic = ["version"]
-
-[tool.setuptools.dynamic]
-version = { attr = "experimentalhmc.__version.__version__" }
 
 [tool.setuptools]
 packages = ["experimentalhmc"]
