@@ -3,7 +3,7 @@ project('experimentalHMC', 'cpp')
 incdir = include_directories('include')
 py = import('python').find_installation(pure: false)
 
-subdir('experimentalHMC')
+subdir('experimentalhmc')
 
 py.install_sources(
     'experimentalhmc/__init__.py',
@@ -17,6 +17,6 @@ py.install_sources(
     'experimentalhmc/onlinequantile.py',
     'experimentalhmc/stan.py',
     'experimentalhmc/windowedaptation.py',
-    'experimentalhmc/f.py',
+    'experimentalhmc/ehmc_cpp.py',
     subdir: 'experimentalhmc',
 )

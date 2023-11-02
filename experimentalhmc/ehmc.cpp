@@ -1,5 +1,4 @@
 #include "inv_phi.cpp"
-#include <iostream>
 #include <Eigen/Dense>
 
 extern "C" {
