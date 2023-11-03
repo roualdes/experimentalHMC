@@ -1,5 +1,6 @@
-import math
+from .ehmc_cpp import normal_invcdf
 
+import math
 import numpy as np
 
 def fft_nextgoodsize(N):
@@ -100,25 +101,25 @@ def _ess(x):
 def isodd(x: float):
     return x & 0x1
 
+# replaced by normal_invcdf in ehmc.cpp, re phi_inv.cpp
+# def Qinv(x):
+#     # x where Q(x) = p for 0 < p <= 0.5
+#     # Abramowitz and Stegun formula 26.2.23
+#     # The absolute value of the error should be less than 4.5 e -4
+#     c = np.asarray([2.515517, 0.802853, 0.010328])
+#     d = np.asarray([1.432788, 0.189269, 0.001308])
+#     numerator = (c[2] * x + c[1]) * x + c[0]
+#     denominator = ((d[2] * x + d[1]) * x + d[0]) * x + 1.0
+#     return x - numerator / denominator
 
-def Qinv(x):
-    # x where Q(x) = p for 0 < p <= 0.5
-    # Abramowitz and Stegun formula 26.2.23
-    # The absolute value of the error should be less than 4.5 e -4
-    c = np.asarray([2.515517, 0.802853, 0.010328])
-    d = np.asarray([1.432788, 0.189269, 0.001308])
-    numerator = (c[2] * x + c[1]) * x + c[0]
-    denominator = ((d[2] * x + d[1]) * x + d[0]) * x + 1.0
-    return x - numerator / denominator
 
-
-def normal_quantile(p):
-    assert np.all(p > 0.0) and np.all(p < 1)
-    q = np.empty_like(p)
-    idx = p >= 0.5
-    q[~idx] = -Qinv( np.sqrt(-2.0 * np.log(p[~idx])) )
-    q[idx] = Qinv( np.sqrt(-2.0 * np.log(1 - p[idx])) )
-    return q
+# def normal_quantile(p):
+#     assert np.all(p > 0.0) and np.all(p < 1)
+#     q = np.empty_like(p)
+#     idx = p >= 0.5
+#     q[~idx] = -Qinv( np.sqrt(-2.0 * np.log(p[~idx])) )
+#     q[idx] = Qinv( np.sqrt(-2.0 * np.log(1 - p[idx])) )
+#     return q
 
 
 def splitchains(x):
@@ -214,6 +215,7 @@ def rhat_basic(x):
     return rhats
 
 
+# TODO rewrite in C
 def tiedrank(x):
     # Adapted from StatsBase
     # https://github.com/JuliaStats/StatsBase.jl/blob/master/src/ranking.jl
@@ -272,7 +274,7 @@ def tiedrank(x):
 
 def zscale(x):
     r = tiedrank(x)
-    z = normal_quantile((r - 0.375) / (np.size(x) + 0.25)) # Blom (1958) (6.10.3)
+    z = normal_invcdf((r - 0.375) / (np.size(x) + 0.25)) # Blom (1958) (6.10.3)
     return np.reshape(z, np.shape(x))
 
 
