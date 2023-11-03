@@ -45,13 +45,13 @@ _set_seed.restype = ctypes.c_void_p
 _set_seed.argtypes = [ctypes.POINTER(ctypes.c_uint64), uint64_array]
 
 
-_rand = lib.xoshiro_rand_u
-_rand.restype = ctypes.c_double
-_rand.argtypes = [uint64_array]
+_uniform_rng = lib.uniform_rng
+_uniform_rng.restype = ctypes.c_double
+_uniform_rng.argtypes = [uint64_array]
 
-_rand_broadcast = lib.xoshiro_rand_u_broadcast
-_rand_broadcast.restype = ctypes.c_void_p
-_rand_broadcast.argtypes = [uint64_array, ctypes.c_int, double_array]
+_uniform_rng_broadcast = lib.uniform_rng_broadcast
+_uniform_rng_broadcast.restype = ctypes.c_void_p
+_uniform_rng_broadcast.argtypes = [uint64_array, ctypes.c_int, double_array]
 
 
 class UniformRNG():
@@ -63,20 +63,20 @@ class UniformRNG():
     def rand(self, N: int = None):
         if N is not None:
             assert type(N) == int
-            x = np.empty(N)
-            _rand_broadcast(self._xoshiro_seed, N, x)
-            return x
+            u = np.empty(N)
+            _uniform_rng_broadcast(self._xoshiro_seed, N, u)
+            return u
         else:
-            return _rand(self._xoshiro_seed)
+            return _uniform_rng(self._xoshiro_seed)
 
 
-_randn = lib.xoshiro_rand_n
-_randn.restype = ctypes.c_double
-_randn.argtypes = [uint64_array]
+_normal_rng = lib.normal_rng
+_normal_rng.restype = ctypes.c_double
+_normal_rng.argtypes = [uint64_array]
 
-_randn_broadcast = lib.xoshiro_rand_n_broadcast
-_randn_broadcast.restype = ctypes.c_void_p
-_randn_broadcast.argtypes = [uint64_array, ctypes.c_int, double_array]
+_normal_rng_broadcast = lib.normal_rng_broadcast
+_normal_rng_broadcast.restype = ctypes.c_void_p
+_normal_rng_broadcast.argtypes = [uint64_array, ctypes.c_int, double_array]
 
 
 class NormalRNG():
@@ -89,7 +89,7 @@ class NormalRNG():
         if N is not None:
             assert type(N) == int
             z = np.empty(N)
-            _randn_broadcast(self._xoshiro_seed, N, z)
+            _normal_rng_broadcast(self._xoshiro_seed, N, z)
             return z
         else:
-            return _randn(self._xoshiro_seed)
+            return _normal_rng(self._xoshiro_seed)

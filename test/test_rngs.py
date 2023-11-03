@@ -23,6 +23,7 @@ def test_uniform_rng():
     B = U_means > 0.5
     assert np.abs(B.mean() - 0.5) < 4 * B.std(ddof = 1)
     assert np.isclose(U_stds.mean(), np.sqrt(1 / 12), atol = 0.1)
+    # TODO test reproducibility
 
 
 def test_normal_rng():
