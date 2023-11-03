@@ -1,4 +1,4 @@
-#include "inv_phi.cpp"
+#include "phi_inv.cpp"
 #include <Eigen/Dense>
 
 extern "C" {
@@ -11,7 +11,16 @@ extern "C" {
     out[3] = q(0) + q(0);
   }
 
-  int inv_std_normal(const double p, double* z) {
-    return inv_phi(p, z);
+  int normal_invcdf(const double p, double* z) {
+    return phi_inv(p, z);
+  }
+
+  int normal_invcdf_broadcast(const double* p, int N, double* z) {
+    int err = 0;
+    for (int n = 0; n < N; ++n) {
+      err = phi_inv(p[n], &z[n]);
+      if (err != 0) break;
+    }
+    return err;
   }
 }

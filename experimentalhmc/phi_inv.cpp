@@ -1,9 +1,9 @@
-#include "inv_phi.h"
+#include "phi_inv.h"
 
 // Adapted from
 // Wichura, M. J. (1988). Algorithm AS 241: The Percentage Points of the Normal Distribution. Journal of the Royal Statistical Society. Series C (Applied Statistics), 37(3), 477–484. https://doi.org/10.2307/2347330
 
-int inv_phi(const double p, double* z) {
+int phi_inv(const double p, double* z) {
   double q = p - 0.5;
 
   double r;
