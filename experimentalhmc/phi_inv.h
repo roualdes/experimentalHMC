@@ -1,7 +1,7 @@
 #ifndef PHIINV_H
 #define PHIINV_H
 
-/// \file inv_std_normal.h
+/// \file phi_inv.h
 
 #ifdef __cplusplus
 #include "cmath"
