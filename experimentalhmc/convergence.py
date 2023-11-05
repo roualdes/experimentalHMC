@@ -1,4 +1,4 @@
-from .ehmc_cpp import normal_invcdf
+from .normal import normal_invcdf
 
 import math
 import numpy as np

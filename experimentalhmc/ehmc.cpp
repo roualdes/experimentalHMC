@@ -1,17 +1,9 @@
 #include "phi_inv.cpp"
 #include "xoshiro.cpp"
+#include "stan.cpp"
 #include <Eigen/Dense>
 
 extern "C" {
-  void f(const double* theta, const int N, double* out) {
-    Eigen::VectorXd q = Eigen::VectorXd::Map(theta, N);
-
-    out[0] = 3;
-    out[1] = 2.5;
-    out[2] = -1;
-    out[3] = q(0) + q(0);
-  }
-
   int normal_invcdf(const double p, double* z) {
     return phi_inv(p, z);
   }
@@ -52,5 +44,21 @@ extern "C" {
     for (int n = 0; n < N; ++n) {
       z[n] = normal_rng(s);
     }
+  }
+
+  void stan_transition(const double* q,
+                       double(*ldg)(double* q, double* p),
+                       uint64_t* rng,
+                       const int dims,
+                       const double* metric,
+                       const double step_size,
+                       const double max_delta_H,
+                       const int max_tree_depth,
+                       double* position_new,
+                       double* energy,
+                       double* accept_prob) {
+    stan_kernel(q, ldg, rng, dims, metric, step_size,
+                max_delta_H, max_tree_depth,
+                position_new, energy, accept_prob);
   }
 }

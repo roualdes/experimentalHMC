@@ -12,15 +12,18 @@ extern "C" {
 #include <stdint.h>
 #endif
 
-  extern void stan_transition(const double* position,
-                              const double* momentum,
-                              void (*log_density_gradient)(double* q, double* p),
-                              uint64_t* s,
-                              const int dims,
-                              const double* metric,
-                              const double step_size,
-                              const double max_delta_H,
-                              const int max_tree_depth);
+  extern void stan_kernel(const double* q,
+                          const double* p,
+                          void (*log_density_gradient)(double* q, double* p),
+                          uint64_t* rng,
+                          const int dims,
+                          const double* metric,
+                          const double step_size,
+                          const double max_delta_H,
+                          const int max_tree_depth,
+                          double* position_new,
+                          double* energy,
+                          double* accept_prob);
 
 #ifdef __cplusplus
 }
