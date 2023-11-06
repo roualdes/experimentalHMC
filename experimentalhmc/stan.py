@@ -1,46 +1,125 @@
 from .dualaverage import DualAverage
+from .ehmc_cpp import _rand_normal, _rand_uniform
 from .windowedaptation import WindowedAdaptation
 from .metric_adapter import MetricAdapter
+from .rng import RNG
 
 import numpy as np
 import numpy.typing as npt
 
 FloatArray = npt.NDArray[np.float64]
+double_array = ndpointer(dtype=ctypes.c_double, flags=("C_CONTIGUOUS"))
 
-class Stan():
+class Stan(RNG):
     def __init__(self,
-                 chains,
                  dims,
+                 log_density_gradient,
                  seed = np.random.default_rng().integers(0, np.iinfo(np.int64).max),
-                 iterations = 1000,
-                 warmup = None,
+                 warmup = 1000,
                  metric = None,
                  step_size = None,
+                 delta = 0.85,
+                 initialize_step_size = True,
                  initial_draw = None,
+                 initial_draw_radius = 2,
                  max_tree_depth = 10,
                  max_delta_H = 1000,
                  **kwargs
                  ):
 
-        self._chains = chains
-        self._dims = dims
+        C_LDG = ctypes.CFUNCTYPE(ctypes.c_double, double_array, double_array)
+        self._ldg = C_LDG(log_density_gradient)
+
         self._seed = seed
-        self._iterations = iterations
+        super().__init__(self.seed)
+
+        self._dims = dims
+        self._iteration = 0
         self._warmup = warmup
-        self._metric = metric or np.ones(shape = (self._chains, self._dims))
-        self._step_size = step_size or np.ones(self._chains)
+        self._metric = metric or np.ones(self._dims)
+
+        if initial_draw:
+            self._draw = initial_draw
+        else:
+            # TODO initialize draws
+            r = initial_draw_radius or 2.0
+            def generate_draw():
+                return r * (2 * _rand_uniform(self._xoshiro_seed, self._dims) - 1)
+            # self._draw = initialize_draws(generate_draw)
+
+
+        self._step_size = step_size or 1.0
+        # TODO follow this through: initialization, updating, setting, reseting
+        self._step_size = ctypes.pointer(ctypes.c_double(self._step_size))
+        if initialize_step_size:
+            # TODO write StepSizeInitializer
+            # self._step_size = StepSizeInitializer(self._step_size)
+            pass
 
         self._schedule = WindowedAdaptation(self._warmup, **kwargs)
-        self._metric_adapter = MetricAdapter(self._chains, self._dims)
-        self._dual_average = DualAverage(self._chains, **kwargs)
+        self._metric_adapter = MetricAdapter(self._dims)
+        self._step_size_adapter = StepSizeAdapter(delta, **kwargs)
 
-        self._draws = np.zeros(shape = (self._iterations, self._chains, self._dims))
-        # TODO initialize xoshiro then gen U(-2, 2)
-        self._draws[0] = initial_draw or 0
+        self._max_tree_depth = ctypes.c_double(max_tree_depth)
+        self._max_delta_H = ctypes.c_double(max_delta_H)
 
+        # TODO all of these need to be ctypes
+        self._adapt_stat = ctypes.pointer(ctypes.c_double(0.0))
+        self._divergent = ctypes.pointer(ctypes.c_bool(False))
+        self._n_leapfrog = ctypes.pointer(ctypes.c_int(0))
+        self._tree_depth = ctypes.pointer(ctypes.c_int(0))
+        self._energy = ctypes.pointer(ctypes.c_double(0.0))
 
-    def sample() -> FloatArray:
-        return self._draws
+    def __iter__(self) -> Iterator:
+        return self
 
-    def draws() -> FloatArray:
-        return self._draws
+    def __next__(self) -> FloatArray:
+        return self.sample()
+
+    def sample(self) -> FloatArray:
+        self._iteration += 1
+        # TODO transition
+        stan_transition(self._draw,
+                        self._ldg,
+                        self._xoshiro_seed,
+                        self._dims,
+                        self._metric,
+                        self._step_size,
+                        self._max_delta_H,
+                        self._max_tree_depth,
+                        self._energy,
+                        self._accept_stat)
+        if self._iteration <= self._warmup:
+            self._step_size_adapter.update(self._adapt_stat)
+            self._step_size = self._step_size_adapter.optimum(smooth = False)
+
+            update_metric = self._schedule.firstwindow() <= self._iteration
+            update_metric &= self._iteration <= self._schedule.lastwindow()
+            if update_metric:
+                self._metric_adapter.update(self._draw)
+
+            if self._iteration == self._schedule.closewindow():
+                # initialize_stepsize
+                self._step_size.contents.value = self._step_size_adapter.optimum(smooth = False)
+                self._step_size_adapter.reset()
+
+                self._metric = self._metric_adapter.metric()
+                self._metric_adapter.reset()
+
+                self._schedule.calculate_next_window()
+
+        else:
+            self._step_size = self._step_size_adapter.optimum(smooth = True)
+
+    def diagnostics(self):
+        """Various properties that might change each iteration"""
+        return {
+            "iteration": self._iteration,
+            "adapt_stat": self._adapt_stat,
+            "divergent": self._divergent,
+            "n_leapfrog": self._n_leapfrog,
+            "tree_depth": self._tree_depth,
+            "energy": self._energy,
+            "step_size": self._step_size,
+            "metric": self._metric,
+        }

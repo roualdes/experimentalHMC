@@ -6,7 +6,7 @@ class WindowedAdaptation():
         self.closewindow = self.firstwindow + self.windowsize
         self.lastwindow = self.warmup - termbuffer
 
-    def calculate_nextwindow(self):
+    def calculate_next_window(self):
         self.windowsize *= 2
         nextclosewindow = self.closewindow + self.windowsize
         if self.closewindow + 2 * self.windowsize > self.lastwindow:
@@ -16,3 +16,12 @@ class WindowedAdaptation():
                 self.closewindow = nextclosewindow
             else:
                 self.closewindow = self.lastwindow
+
+    def firstwindow(self):
+        return self.firstwindow
+
+    def lastwindow(self):
+        return self.lastwindow
+
+    def closewindow(self):
+        return self.closewindow

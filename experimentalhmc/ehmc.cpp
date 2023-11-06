@@ -57,6 +57,8 @@ extern "C" {
                        double* position_new,
                        double* energy,
                        double* accept_prob) {
+    // TODO add divergent, n_leapfrog, tree_depth, energy
+    // TODO position_new really necessary? overwrite q?
     stan_kernel(q, ldg, rng, dims, metric, step_size,
                 max_delta_H, max_tree_depth,
                 position_new, energy, accept_prob);

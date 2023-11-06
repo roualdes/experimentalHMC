@@ -22,10 +22,11 @@ double Hamiltonian(const double log_density, const ps_point z) {
   return -log_density + 0.5 * z.position.dot(z.momentum);
 }
 
-double leapfrog(ps_point z, double(*ldg)(double* q, double* grad),
-                Eigen::VectorXd& gradient,
+double leapfrog(ps_point z,
                 const Eigen::VectorXd step_size,
-                const int steps) {
+                const int steps,
+                Eigen::VectorXd& gradient,
+                double(*ldg)(double* q, double* grad)) {
   double ld;
   z.momentum += 0.5 * step_size * gradient;
 
@@ -102,7 +103,7 @@ bool build_tree(int depth,
   if (depth == 0) {
     bool divergent = false;
 
-    double ld = leapfrog(z_, ldg, gradient, step_size, 1);
+    double ld = leapfrog(z_, step_size, 1, gradient, ldg);
     ++n_leapfrog;
 
     double h = Hamiltonian(ld, z_);

@@ -4,10 +4,10 @@ from .leapfrog import leapfrog
 from .metric_adapter import MetricAdapter
 from .normal import normal_invcdf
 from .onlinemad import OnlineMAD
-from .onlinemean import OnlineMean
 from .onlinemeanvar import OnlineMeanVar
 from .onlinequantile import OnlineQuantile
 from .rng import NormalRNG, UniformRNG
+from .step_size_adapter import StepSizeAdapter
 
 
 __all__ = [
@@ -20,7 +20,6 @@ __all__ = [
     "leapfrog",
     "MetricAdapter",
     "OnlineMAD",
-    "OnlineMean",
     "OnlineMeanVar",
     "OnlineQuantile",
     "rhat_basic",
@@ -30,4 +29,5 @@ __all__ = [
     "normal_invcdf",
     "UniformRNG",
     "NormalRNG",
+    "StepSizeAdapter",
 ]
