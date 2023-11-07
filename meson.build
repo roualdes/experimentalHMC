@@ -9,8 +9,9 @@ subdir('experimentalhmc')
 py.install_sources(
     'experimentalhmc/__init__.py',
     'experimentalhmc/convergence.py',
-    'experimentalhmc/dualaverage.py',
+    'experimentalhmc/dual_average.py',
     'experimentalhmc/ehmc_cpp.py',
+    'experimentalhmc/initialize_draws.py',
     'experimentalhmc/leapfrog.py',
     'experimentalhmc/metric_adapter.py',
     'experimentalhmc/normal.py',

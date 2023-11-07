@@ -20,7 +20,7 @@ packages = ["experimentalhmc"]
 "experimentalhmc" = ["py.typed"]
 
 [project.optional-dependencies]
-test = ["pandas", "pytest", "pytest-cov"]
+test = ["pandas", "pytest", "pytest-cov", "bridgestan"]
 
 [tool.isort]
 profile = "black"

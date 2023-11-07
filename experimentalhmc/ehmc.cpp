@@ -46,21 +46,21 @@ extern "C" {
     }
   }
 
-  void stan_transition(const double* q,
+  void stan_transition(double* q,
                        double(*ldg)(double* q, double* p),
                        uint64_t* rng,
+                       double* accept_prob,
+                       bool* divergent,
+                       int* n_leapfrog,
+                       int* tree_depth,
+                       double* energy,
                        const int dims,
                        const double* metric,
                        const double step_size,
                        const double max_delta_H,
-                       const int max_tree_depth,
-                       double* position_new,
-                       double* energy,
-                       double* accept_prob) {
-    // TODO add divergent, n_leapfrog, tree_depth, energy
-    // TODO position_new really necessary? overwrite q?
-    stan_kernel(q, ldg, rng, dims, metric, step_size,
-                max_delta_H, max_tree_depth,
-                position_new, energy, accept_prob);
+                       const int max_tree_depth) {
+    stan_kernel(q, ldg, rng, accept_prob, divergent,
+                n_leapfrog, tree_depth, energy, dims,
+                metric, step_size, max_delta_H, max_tree_depth);
   }
 }

@@ -82,7 +82,7 @@ bool compute_criterion(Eigen::VectorXd& p_sharp_minus,
 }
 
 
-bool build_tree(int depth,
+bool build_tree(int tree_depth,
                 double(*ldg)(double* q, double* grad),
                 Eigen::VectorXd& gradient,
                 uint64_t* rng,
@@ -95,16 +95,16 @@ bool build_tree(int depth,
                 Eigen::VectorXd& p_end,
                 Eigen::VectorXd step_size,
                 double H0,
-                int& n_leapfrog,
+                int* n_leapfrog,
                 double& log_sum_weight,
                 double& sum_metro_prob,
                 double max_delta_H) {
   // Base case
-  if (depth == 0) {
+  if (tree_depth == 0) {
     bool divergent = false;
 
     double ld = leapfrog(z_, step_size, 1, gradient, ldg);
-    ++n_leapfrog;
+    ++(n_leapfrog);
 
     double h = Hamiltonian(ld, z_);
     if (std::isnan(h)) {
@@ -146,7 +146,7 @@ bool build_tree(int depth,
   Eigen::VectorXd rho_init = Eigen::VectorXd::Zero(rho.size());
 
   bool valid_init
-    = build_tree(depth - 1, ldg, gradient, rng, z_, z_propose,
+    = build_tree(tree_depth - 1, ldg, gradient, rng, z_, z_propose,
                  p_sharp_beg, p_sharp_init_end,
                  rho_init, p_beg, p_init_end,
                  step_size, H0,
@@ -169,7 +169,7 @@ bool build_tree(int depth,
   Eigen::VectorXd rho_final = Eigen::VectorXd::Zero(rho.size());
 
   bool valid_final
-    = build_tree(depth - 1, ldg, gradient, rng, z_, z_propose_final,
+    = build_tree(tree_depth - 1, ldg, gradient, rng, z_, z_propose_final,
                  p_sharp_final_beg, p_sharp_end,
                  rho_final, p_final_beg, p_end,
                  step_size, H0,
@@ -214,19 +214,25 @@ bool build_tree(int depth,
 }
 
 
-void stan_kernel(const double* q,
+void stan_kernel(double* q,
                  double(*ldg)(double* q, double* p),
                  uint64_t* rng,
+                 double* accept_prob,
+                 bool* divergent,
+                 int* n_leapfrog,
+                 int* tree_depth,
+                 double* energy,
                  const int dims,
                  const double* metric,
                  const double step_size,
                  const double max_delta_H,
-                 const int max_tree_depth,
-                 double* position_new,
-                 double* energy,
-                 double* accept_prob) {
+                 const int max_tree_depth) {
 
-  Eigen::VectorXd position = Eigen::VectorXd::Map(q, dims);
+
+  Eigen::VectorXd position(dims);
+  for (int d = 0; d < dims; ++d) {
+    position(d) = q[d];
+  }
   Eigen::VectorXd momentum(dims);
   _normal_rng(rng, momentum);
   ps_point z_ = ps_point(position, momentum);
@@ -265,10 +271,10 @@ void stan_kernel(const double* q,
 
   double log_sum_weight = 0.0;
   double sum_metro_prob = 0.0;
-  int n_leapfrog = 0;
-  int depth = 0;
+  *n_leapfrog = 0;
+  *tree_depth = 0;
 
-  while ( depth < max_tree_depth ) {
+  while ( *tree_depth < max_tree_depth ) {
     // Build a new subtree in a random direction
     Eigen::VectorXd rho_fwd = Eigen::VectorXd::Zero(rho.size());
     Eigen::VectorXd rho_bck = Eigen::VectorXd::Zero(rho.size());
@@ -283,7 +289,7 @@ void stan_kernel(const double* q,
       p_bck_fwd = p_fwd_fwd;
       p_sharp_bck_fwd = p_sharp_fwd_fwd;
 
-      valid_subtree = build_tree(depth, ldg, gradient, rng, z_, z_propose,
+      valid_subtree = build_tree(*tree_depth, ldg, gradient, rng, z_, z_propose,
                                  p_sharp_fwd_bck, p_sharp_fwd_fwd,
                                  rho_fwd, p_fwd_bck, p_fwd_fwd,
                                  1 * ss, H0,
@@ -297,7 +303,7 @@ void stan_kernel(const double* q,
       p_fwd_bck = p_bck_bck;
       p_sharp_fwd_bck = p_sharp_bck_bck;
 
-      valid_subtree = build_tree(depth, ldg, gradient, rng, z_, z_propose,
+      valid_subtree = build_tree(*tree_depth, ldg, gradient, rng, z_, z_propose,
                                  p_sharp_bck_fwd, p_sharp_bck_bck,
                                  rho_bck, p_bck_fwd, p_bck_bck,
                                  -1 * ss, H0,
@@ -306,11 +312,14 @@ void stan_kernel(const double* q,
       z_bck = z_;
     }
 
-    if (!valid_subtree)
+    if (!valid_subtree) {
+      *divergent = true;
       break;
+    }
+
 
     // Sample from accepted subtree
-    ++depth;
+    ++(*tree_depth);
 
     if (log_sum_weight_subtree > log_sum_weight) {
       z_sample = z_propose;
@@ -344,8 +353,8 @@ void stan_kernel(const double* q,
       break;
   }
 
-  *accept_prob = sum_metro_prob / static_cast<double>(n_leapfrog);
-  Eigen::VectorXd::Map(position_new, dims) = z_sample.position;
+  *accept_prob = sum_metro_prob / static_cast<double>(*n_leapfrog);
+  Eigen::VectorXd::Map(q, dims) = z_sample.position;
   ld = ldg(z_sample.position.data(), gradient.data());
   *energy = Hamiltonian(ld, z_sample);
 }

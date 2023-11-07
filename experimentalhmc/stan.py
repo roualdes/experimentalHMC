@@ -1,8 +1,14 @@
-from .dualaverage import DualAverage
+from .dual_average import DualAverage
 from .ehmc_cpp import _rand_normal, _rand_uniform
+from .initialize_draws import initialize_draws
 from .windowedaptation import WindowedAdaptation
 from .metric_adapter import MetricAdapter
 from .rng import RNG
+
+from numpy.ctypeslib import ndpointer
+from typing import Iterator
+
+import ctypes
 
 import numpy as np
 import numpy.typing as npt
@@ -31,44 +37,41 @@ class Stan(RNG):
         self._ldg = C_LDG(log_density_gradient)
 
         self._seed = seed
-        super().__init__(self.seed)
+        super().__init__(self._seed)
 
         self._dims = dims
         self._iteration = 0
         self._warmup = warmup
         self._metric = metric or np.ones(self._dims)
 
+        print("before initial draw")
         if initial_draw:
             self._draw = initial_draw
         else:
-            # TODO initialize draws
-            r = initial_draw_radius or 2.0
-            def generate_draw():
-                return r * (2 * _rand_uniform(self._xoshiro_seed, self._dims) - 1)
-            # self._draw = initialize_draws(generate_draw)
+            self._draw = initialize_draws(self._xoshiro_seed, self._dims, self._ldg,  **kwargs)
 
-
+        print("after initial draw")
         self._step_size = step_size or 1.0
         # TODO follow this through: initialization, updating, setting, reseting
         self._step_size = ctypes.pointer(ctypes.c_double(self._step_size))
         if initialize_step_size:
             # TODO write StepSizeInitializer
-            # self._step_size = StepSizeInitializer(self._step_size)
+            # self._step_size.contents.value = StepSizeInitializer(self._step_size.contents.value, self._xoshiro_seed, self._ldg)
             pass
 
         self._schedule = WindowedAdaptation(self._warmup, **kwargs)
         self._metric_adapter = MetricAdapter(self._dims)
         self._step_size_adapter = StepSizeAdapter(delta, **kwargs)
 
-        self._max_tree_depth = ctypes.c_double(max_tree_depth)
-        self._max_delta_H = ctypes.c_double(max_delta_H)
-
-        # TODO all of these need to be ctypes
         self._adapt_stat = ctypes.pointer(ctypes.c_double(0.0))
         self._divergent = ctypes.pointer(ctypes.c_bool(False))
         self._n_leapfrog = ctypes.pointer(ctypes.c_int(0))
         self._tree_depth = ctypes.pointer(ctypes.c_int(0))
         self._energy = ctypes.pointer(ctypes.c_double(0.0))
+
+        self._max_tree_depth = ctypes.c_double(max_tree_depth)
+        self._max_delta_H = ctypes.c_double(max_delta_H)
+        print("end initialization")
 
     def __iter__(self) -> Iterator:
         return self
@@ -82,13 +85,16 @@ class Stan(RNG):
         stan_transition(self._draw,
                         self._ldg,
                         self._xoshiro_seed,
+                        self._accept_stat,
+                        self._divergent,
+                        self._n_leapfrog,
+                        self._tree_depth,
+                        self._energy,
                         self._dims,
                         self._metric,
                         self._step_size,
                         self._max_delta_H,
-                        self._max_tree_depth,
-                        self._energy,
-                        self._accept_stat)
+                        self._max_tree_depth)
         if self._iteration <= self._warmup:
             self._step_size_adapter.update(self._adapt_stat)
             self._step_size = self._step_size_adapter.optimum(smooth = False)

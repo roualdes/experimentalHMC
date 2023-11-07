@@ -1,5 +1,5 @@
 from .convergence import ess_basic, ess_mean, ess_tail, ess_quantile, ess_std, rhat_basic, rhat_max, mcse_mean, mcse_std
-from .dualaverage import DualAverage
+from .dual_average import DualAverage
 from .leapfrog import leapfrog
 from .metric_adapter import MetricAdapter
 from .normal import normal_invcdf
@@ -7,6 +7,7 @@ from .onlinemad import OnlineMAD
 from .onlinemeanvar import OnlineMeanVar
 from .onlinequantile import OnlineQuantile
 from .rng import NormalRNG, UniformRNG
+from .stan import Stan
 from .step_size_adapter import StepSizeAdapter
 
 
@@ -29,5 +30,6 @@ __all__ = [
     "normal_invcdf",
     "UniformRNG",
     "NormalRNG",
+    "Stan",
     "StepSizeAdapter",
 ]
