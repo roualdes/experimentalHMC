@@ -2,6 +2,7 @@ import ctypes
 
 from pathlib import Path
 
+import numpy.ctypeslib as npc
 import bridgestan as bs
 import numpy as np
 import pytest
@@ -22,6 +23,8 @@ def test_ldg():
     bsm = bs.StanModel.from_stan_file(stan_file = stan_model, model_data = stan_data)
 
     def log_density_gradient(position, gradient):
+        q = npc.as_array(position, shape = (bsm.param_unc_num(),))
+        g = npc.as_array(gradient, shape = (bsm.param_unc_num(),))
         ld, _ = bsm.log_density_gradient(position, out = gradient)
         return ld
 
