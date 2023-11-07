@@ -61,3 +61,22 @@ def _rand_normal(xoshiro_seed, N: int = None):
         return z
     else:
         return _normal_rng(xoshiro_seed)
+
+
+_stan_transition = lib.stan_transition
+_stan_transition.restype = ctypes.c_void_p
+_stan_transition.argtypes = [double_array,
+                             ctypes.CFUNCTYPE(ctypes.c_double,
+                                              ctypes.POINTER(ctypes.c_double),
+                                              ctypes.POINTER(ctypes.c_double)),
+                             uint64_array,
+                             ctypes.POINTER(ctypes.c_double),
+                             ctypes.POINTER(ctypes.c_bool),
+                             ctypes.POINTER(ctypes.c_int),
+                             ctypes.POINTER(ctypes.c_int),
+                             ctypes.POINTER(ctypes.c_double),
+                             ctypes.c_int,
+                             double_array,
+                             ctypes.c_double,
+                             ctypes.c_double,
+                             ctypes.c_int]

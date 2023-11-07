@@ -1,5 +1,5 @@
 project('experimentalHMC', 'cpp',
-        default_options : ['cpp_std=c++14'])
+        default_options : ['cpp_std=c++17'])
 
 incdir = include_directories('include')
 py = import('python').find_installation(pure: false)
@@ -21,6 +21,7 @@ py.install_sources(
     'experimentalhmc/rng.py',
     'experimentalhmc/stan.py',
     'experimentalhmc/step_size_adapter.py',
+    'experimentalhmc/step_size_initializer.py',
     'experimentalhmc/windowedaptation.py',
     subdir: 'experimentalhmc',
 )

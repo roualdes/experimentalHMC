@@ -3,6 +3,7 @@
 #include "xoshiro.h"
 #include <Eigen/Dense>
 #include <limits>
+#include <iostream>
 
 // Adapted from various files within
 // https://github.com/stan-dev/stan/
@@ -19,20 +20,20 @@ public:
 static constexpr double INFTY = std::numeric_limits<double>::infinity();
 
 double Hamiltonian(const double log_density, const ps_point z) {
-  return -log_density + 0.5 * z.position.dot(z.momentum);
+  return -log_density + 0.5 * z.momentum.dot(z.momentum);
 }
 
 double leapfrog(ps_point z,
                 const Eigen::VectorXd step_size,
                 const int steps,
                 Eigen::VectorXd& gradient,
-                double(*ldg)(double* q, double* grad)) {
+                double(*log_density_gradient)(double* q, double* grad)) {
   double ld;
   z.momentum += 0.5 * step_size * gradient;
 
   for (int step = 0; step < steps; ++step) {
     z.position += step_size * gradient;
-    ld = ldg(z.position.data(), gradient.data());
+    ld = (*log_density_gradient)(z.position.data(), gradient.data());
     if (step != steps) {
       z.momentum += step_size * gradient;
     }
@@ -83,7 +84,7 @@ bool compute_criterion(Eigen::VectorXd& p_sharp_minus,
 
 
 bool build_tree(int tree_depth,
-                double(*ldg)(double* q, double* grad),
+                double(*log_density_gradient)(double* q, double* grad),
                 Eigen::VectorXd& gradient,
                 uint64_t* rng,
                 ps_point& z_,
@@ -103,7 +104,7 @@ bool build_tree(int tree_depth,
   if (tree_depth == 0) {
     bool divergent = false;
 
-    double ld = leapfrog(z_, step_size, 1, gradient, ldg);
+    double ld = leapfrog(z_, step_size, 1, gradient, log_density_gradient);
     ++(n_leapfrog);
 
     double h = Hamiltonian(ld, z_);
@@ -146,7 +147,7 @@ bool build_tree(int tree_depth,
   Eigen::VectorXd rho_init = Eigen::VectorXd::Zero(rho.size());
 
   bool valid_init
-    = build_tree(tree_depth - 1, ldg, gradient, rng, z_, z_propose,
+    = build_tree(tree_depth - 1, log_density_gradient, gradient, rng, z_, z_propose,
                  p_sharp_beg, p_sharp_init_end,
                  rho_init, p_beg, p_init_end,
                  step_size, H0,
@@ -169,7 +170,7 @@ bool build_tree(int tree_depth,
   Eigen::VectorXd rho_final = Eigen::VectorXd::Zero(rho.size());
 
   bool valid_final
-    = build_tree(tree_depth - 1, ldg, gradient, rng, z_, z_propose_final,
+    = build_tree(tree_depth - 1, log_density_gradient, gradient, rng, z_, z_propose_final,
                  p_sharp_final_beg, p_sharp_end,
                  rho_final, p_final_beg, p_end,
                  step_size, H0,
@@ -215,7 +216,7 @@ bool build_tree(int tree_depth,
 
 
 void stan_kernel(double* q,
-                 double(*ldg)(double* q, double* p),
+                 double(*log_density_gradient)(double* q, double* p),
                  uint64_t* rng,
                  double* accept_prob,
                  bool* divergent,
@@ -266,7 +267,7 @@ void stan_kernel(double* q,
   Eigen::VectorXd rho = z_.momentum.transpose();
 
   Eigen::VectorXd gradient(dims);
-  double ld = ldg(z_.position.data(), gradient.data());
+  double ld = (*log_density_gradient)(z_.position.data(), gradient.data());
   double H0 = Hamiltonian(ld, z_);
 
   double log_sum_weight = 0.0;
@@ -289,7 +290,7 @@ void stan_kernel(double* q,
       p_bck_fwd = p_fwd_fwd;
       p_sharp_bck_fwd = p_sharp_fwd_fwd;
 
-      valid_subtree = build_tree(*tree_depth, ldg, gradient, rng, z_, z_propose,
+      valid_subtree = build_tree(*tree_depth, log_density_gradient, gradient, rng, z_, z_propose,
                                  p_sharp_fwd_bck, p_sharp_fwd_fwd,
                                  rho_fwd, p_fwd_bck, p_fwd_fwd,
                                  1 * ss, H0,
@@ -303,7 +304,7 @@ void stan_kernel(double* q,
       p_fwd_bck = p_bck_bck;
       p_sharp_fwd_bck = p_sharp_bck_bck;
 
-      valid_subtree = build_tree(*tree_depth, ldg, gradient, rng, z_, z_propose,
+      valid_subtree = build_tree(*tree_depth, log_density_gradient, gradient, rng, z_, z_propose,
                                  p_sharp_bck_fwd, p_sharp_bck_bck,
                                  rho_bck, p_bck_fwd, p_bck_bck,
                                  -1 * ss, H0,
@@ -355,6 +356,6 @@ void stan_kernel(double* q,
 
   *accept_prob = sum_metro_prob / static_cast<double>(*n_leapfrog);
   Eigen::VectorXd::Map(q, dims) = z_sample.position;
-  ld = ldg(z_sample.position.data(), gradient.data());
+  ld = (*log_density_gradient)(z_sample.position.data(), gradient.data());
   *energy = Hamiltonian(ld, z_sample);
 }

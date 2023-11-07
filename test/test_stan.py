@@ -11,20 +11,33 @@ import experimentalhmc as ehmc
 
 STAN_FOLDER = Path(__file__).parent.parent / "test_models"
 
+bs.set_bridgestan_path("/Users/edward/bridgestan/") # TODO this shouldn't be hardcoded
+
+def bridgestan_log_density_gradient_c_wrapper(bsm):
+    dim = bsm.param_unc_num()
+    def bsm_c_wrapper(position, gradient):
+        ld, _ = bsm.log_density_gradient(npc.as_array(position, shape = (dim,)),
+                                         out = npc.as_array(gradient, shape = (dim,)))
+        return ld
+    return bsm_c_wrapper
+
 def test_ldg():
-    dims = 2
     model = "gaussian"
 
     stan_model = f"{str(STAN_FOLDER)}/{model}/{model}.stan"
     stan_data = f"{str(STAN_FOLDER)}/{model}/{model}.data.json"
 
-    bs.set_bridgestan_path("/Users/edward/bridgestan/")
-
     bsm = bs.StanModel.from_stan_file(stan_file = stan_model, model_data = stan_data)
+    ldg = bridgestan_log_density_gradient_c_wrapper(bsm)
+    dims = bsm.param_unc_num()
+    stan = ehmc.Stan(dims, ldg, seed = 204)
 
-    def log_density_gradient(position, gradient):
-        ld, _ = bsm.log_density_gradient(npc.as_array(position, shape = (bsm.param_unc_num(),)),
-                                         out = npc.as_array(gradient, shape = (bsm.param_unc_num(),)))
-        return ld
+    omv = ehmc.OnlineMeanVar(dims)
 
-    stan = ehmc.Stan(bsm.param_unc_num(), log_density_gradient, seed = 204)
+    for m in range(2000):
+        print(f"iteration {m}...")
+        x = stan.sample()
+        print(f"sampled {x}")
+        omv.update(x)
+        print(f"running mean = {omv.mean()}")
+        print(f"running var = {omv.var()}")

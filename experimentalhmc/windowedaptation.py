@@ -1,27 +1,27 @@
 class WindowedAdaptation():
     def __init__(self, warmup, initbuffer = 75, termbuffer = 100, windowsize = 25):
-        self.windowsize = windowsize
-        self.warmup = warmup
-        self.firstwindow = initbuffer
-        self.closewindow = self.firstwindow + self.windowsize
-        self.lastwindow = self.warmup - termbuffer
+        self._windowsize = windowsize
+        self._warmup = warmup
+        self._firstwindow = initbuffer
+        self._closewindow = self._firstwindow + self._windowsize
+        self._lastwindow = self._warmup - termbuffer
 
     def calculate_next_window(self):
-        self.windowsize *= 2
-        nextclosewindow = self.closewindow + self.windowsize
-        if self.closewindow + 2 * self.windowsize > self.lastwindow:
-            self.closewindow = self.lastwindow
+        self._windowsize *= 2
+        nextclosewindow = self._closewindow + self._windowsize
+        if self._closewindow + 2 * self._windowsize > self._lastwindow:
+            self._closewindow = self._lastwindow
         else:
-            if nextclosewindow <= self.lastwindow:
-                self.closewindow = nextclosewindow
+            if nextclosewindow <= self._lastwindow:
+                self._closewindow = nextclosewindow
             else:
-                self.closewindow = self.lastwindow
+                self._closewindow = self._lastwindow
 
     def firstwindow(self):
-        return self.firstwindow
+        return self._firstwindow
 
     def lastwindow(self):
-        return self.lastwindow
+        return self._lastwindow
 
     def closewindow(self):
-        return self.closewindow
+        return self._closewindow

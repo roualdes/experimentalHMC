@@ -15,15 +15,13 @@ def initialize_draws(seed, dims, ldg, initial_draw_radius = 2, initial_draw_atte
 
     radius = initial_draw_radius
     initial_draw = generate_draw(seed, dims, radius)
-    print(f"{type(initial_draw)}")
 
     gradient = np.empty_like(initial_draw)
     momentum = np.empty_like(initial_draw)
 
     while attempt < attempts and not initialized:
         ld = ldg(npc.as_ctypes(initial_draw), npc.as_ctypes(gradient))
-        print("successfully called ldg()")
-        print(f"attempt number {attempt}")
+
         if np.isfinite(ld) and ~np.isnan(ld):
             initialized = True
 
