@@ -33,7 +33,9 @@ class Stan(RNG):
                  **kwargs
                  ):
 
-        C_LDG = ctypes.CFUNCTYPE(ctypes.c_double, double_array, double_array)
+        C_LDG = ctypes.CFUNCTYPE(ctypes.c_double,
+                                 ctypes.POINTER(ctypes.c_double),
+                                 ctypes.POINTER(ctypes.c_double))
         self._ldg = C_LDG(log_density_gradient)
 
         self._seed = seed
@@ -51,6 +53,7 @@ class Stan(RNG):
             self._draw = initialize_draws(self._xoshiro_seed, self._dims, self._ldg,  **kwargs)
 
         print("after initial draw")
+        print(self._draw)
         self._step_size = step_size or 1.0
         # TODO follow this through: initialization, updating, setting, reseting
         self._step_size = ctypes.pointer(ctypes.c_double(self._step_size))
@@ -61,7 +64,7 @@ class Stan(RNG):
 
         self._schedule = WindowedAdaptation(self._warmup, **kwargs)
         self._metric_adapter = MetricAdapter(self._dims)
-        self._step_size_adapter = StepSizeAdapter(delta, **kwargs)
+        # self._step_size_adapter = StepSizeAdapter(delta, **kwargs)
 
         self._adapt_stat = ctypes.pointer(ctypes.c_double(0.0))
         self._divergent = ctypes.pointer(ctypes.c_bool(False))

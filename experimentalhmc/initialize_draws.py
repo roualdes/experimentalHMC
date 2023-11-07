@@ -1,6 +1,7 @@
 from .ehmc_cpp import _rand_normal, _rand_uniform
 
 import numpy as np
+import numpy.ctypeslib as npc
 
 def generate_draw(seed, dims, radius):
     U = _rand_uniform(seed, dims)
@@ -20,18 +21,19 @@ def initialize_draws(seed, dims, ldg, initial_draw_radius = 2, initial_draw_atte
     momentum = np.empty_like(initial_draw)
 
     while attempt < attempts and not initialized:
-        ld = ldg(initial_draw, gradient)
-
+        ld = ldg(npc.as_ctypes(initial_draw), npc.as_ctypes(gradient))
+        print("successfully called ldg()")
+        print(f"attempt number {attempt}")
         if np.isfinite(ld) and ~np.isnan(ld):
             initialized = True
 
         g = np.sum(gradient)
-        if np.isfinite(g) or np.isnan(g):
+        if ~np.isfinite(g) or np.isnan(g):
             initialized = False
             continue
 
         attempt += 1
-        initial_draw = generate_draw(seed, dims)
+        initial_draw = generate_draw(seed, dims, radius)
 
     if attempt > attempts:
         print(f"Failed to find initial values in {attempt} attempts")

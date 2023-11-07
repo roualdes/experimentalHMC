@@ -23,9 +23,8 @@ def test_ldg():
     bsm = bs.StanModel.from_stan_file(stan_file = stan_model, model_data = stan_data)
 
     def log_density_gradient(position, gradient):
-        q = npc.as_array(position, shape = (bsm.param_unc_num(),))
-        g = npc.as_array(gradient, shape = (bsm.param_unc_num(),))
-        ld, _ = bsm.log_density_gradient(position, out = gradient)
+        ld, _ = bsm.log_density_gradient(npc.as_array(position, shape = (bsm.param_unc_num(),)),
+                                         out = npc.as_array(gradient, shape = (bsm.param_unc_num(),)))
         return ld
 
-    stan = ehmc.Stan(bsm.param_unc_num(), log_density_gradient)
+    stan = ehmc.Stan(bsm.param_unc_num(), log_density_gradient, seed = 204)
