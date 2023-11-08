@@ -23,7 +23,7 @@ double Hamiltonian(const double log_density, const ps_point z) {
   return -log_density + 0.5 * z.momentum.dot(z.momentum);
 }
 
-double leapfrog(ps_point z,
+double leapfrog(ps_point& z,
                 const Eigen::VectorXd step_size,
                 const int steps,
                 Eigen::VectorXd& gradient,
@@ -105,7 +105,7 @@ bool build_tree(int tree_depth,
     bool divergent = false;
 
     double ld = leapfrog(z_, step_size, 1, gradient, log_density_gradient);
-    ++(n_leapfrog);
+    ++(*n_leapfrog);
 
     double h = Hamiltonian(ld, z_);
     if (std::isnan(h)) {
@@ -355,6 +355,8 @@ void stan_kernel(double* q,
   }
 
   *accept_prob = sum_metro_prob / static_cast<double>(*n_leapfrog);
+  std::cout << "number leapfrog = " << *n_leapfrog << std::endl;
+  std::cout << "accept prob = " << *accept_prob << std::endl;
   Eigen::VectorXd::Map(q, dims) = z_sample.position;
   ld = (*log_density_gradient)(z_sample.position.data(), gradient.data());
   *energy = Hamiltonian(ld, z_sample);

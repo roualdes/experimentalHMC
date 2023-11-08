@@ -34,10 +34,12 @@ def test_ldg():
 
     omv = ehmc.OnlineMeanVar(dims)
 
-    for m in range(2000):
+    for m in range(100):
         print(f"iteration {m}...")
+        print(f"step size = {stan._step_size.contents.value}")
         x = stan.sample()
         print(f"sampled {x}")
+
         omv.update(x)
-        print(f"running mean = {omv.mean()}")
-        print(f"running var = {omv.var()}")
+        # print(f"running mean = {omv.mean()}")
+        # print(f"running var = {omv.var()}")
