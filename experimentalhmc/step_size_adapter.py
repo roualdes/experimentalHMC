@@ -3,7 +3,7 @@ from .dual_average import DualAverage
 import numpy as np
 
 class StepSizeAdapter():
-    def __init__(self, delta: float = 0.85, **kwargs):
+    def __init__(self, delta: float = 0.8, **kwargs):
         self._delta = delta
         self._dual_average = DualAverage(**kwargs)
 

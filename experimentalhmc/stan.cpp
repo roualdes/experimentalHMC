@@ -191,8 +191,9 @@ bool build_tree(int tree_depth,
   } else {
     double accept_prob
       = std::exp(log_sum_weight_final - log_sum_weight_subtree);
-    if (_uniform_rng(rng) < accept_prob)
+    if (_uniform_rng(rng) < accept_prob) {
       z_propose = z_propose_final;
+    }
   }
 
   Eigen::VectorXd rho_subtree = rho_init + rho_final;
@@ -293,7 +294,7 @@ void stan_kernel(double* q,
       valid_subtree = build_tree(*tree_depth, log_density_gradient, gradient, rng, z_, z_propose,
                                  p_sharp_fwd_bck, p_sharp_fwd_fwd,
                                  rho_fwd, p_fwd_bck, p_fwd_fwd,
-                                 1 * ss, H0,
+                                 ss, H0,
                                  n_leapfrog, log_sum_weight_subtree,
                                  sum_metro_prob, max_delta_H);
       z_fwd = z_;
@@ -318,7 +319,6 @@ void stan_kernel(double* q,
       break;
     }
 
-
     // Sample from accepted subtree
     ++(*tree_depth);
 
@@ -326,8 +326,9 @@ void stan_kernel(double* q,
       z_sample = z_propose;
     } else {
       double accept_prob = std::exp(log_sum_weight_subtree - log_sum_weight);
-      if (_uniform_rng(rng) < accept_prob)
+      if (_uniform_rng(rng) < accept_prob) {
         z_sample = z_propose;
+      }
     }
 
     log_sum_weight
@@ -355,8 +356,8 @@ void stan_kernel(double* q,
   }
 
   *accept_prob = sum_metro_prob / static_cast<double>(*n_leapfrog);
-  std::cout << "number leapfrog = " << *n_leapfrog << std::endl;
-  std::cout << "accept prob = " << *accept_prob << std::endl;
+  // std::cout << "number leapfrog = " << *n_leapfrog << std::endl;
+  // std::cout << "accept prob = " << *accept_prob << std::endl;
   Eigen::VectorXd::Map(q, dims) = z_sample.position;
   ld = (*log_density_gradient)(z_sample.position.data(), gradient.data());
   *energy = Hamiltonian(ld, z_sample);

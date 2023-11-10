@@ -26,8 +26,8 @@ class Stan(RNG):
                  seed = np.random.default_rng().integers(0, np.iinfo(np.int64).max),
                  warmup = 1000,
                  metric = None,
-                 step_size = None,
-                 delta = 0.85,
+                 step_size = 1.0,
+                 delta = 0.8,
                  initialize_step_size = True,
                  initial_draw = None,
                  initial_draw_radius = 2,
@@ -44,18 +44,20 @@ class Stan(RNG):
         self._seed = seed
         super().__init__(self._seed)
 
-        self._dims = dims
         self._iteration = 0
         self._warmup = warmup
+        self._dims = dims
+        self._delta = delta
         self._metric = metric or np.ones(self._dims)
+        self._max_delta_H = ctypes.c_double(max_delta_H)
+        self._max_tree_depth = ctypes.c_int(int(max_tree_depth))
 
         if initial_draw:
             self._draw = initial_draw
         else:
             self._draw = initialize_draws(self._xoshiro_seed, self._dims, self._ldg,  **kwargs)
 
-        self._step_size = step_size or 1.0
-        self._step_size = ctypes.pointer(ctypes.c_double(self._step_size))
+        self._step_size = ctypes.pointer(ctypes.c_double(step_size))
         if initialize_step_size:
             self._step_size.contents.value = step_size_initializer(self._draw,
                                                                    self._dims,
@@ -66,16 +68,13 @@ class Stan(RNG):
 
         self._schedule = WindowedAdaptation(self._warmup, **kwargs)
         self._metric_adapter = MetricAdapter(self._dims)
-        self._step_size_adapter = StepSizeAdapter(delta, **kwargs)
+        self._step_size_adapter = StepSizeAdapter(self._delta, **kwargs)
 
         self._adapt_stat = ctypes.pointer(ctypes.c_double(0.0))
         self._divergent = ctypes.pointer(ctypes.c_bool(False))
         self._n_leapfrog = ctypes.pointer(ctypes.c_int(0))
         self._tree_depth = ctypes.pointer(ctypes.c_int(0))
         self._energy = ctypes.pointer(ctypes.c_double(0.0))
-
-        self._max_delta_H = ctypes.c_double(max_delta_H)
-        self._max_tree_depth = ctypes.c_int(int(max_tree_depth))
 
     def __iter__(self) -> Iterator:
         return self
@@ -108,7 +107,12 @@ class Stan(RNG):
                 self._metric_adapter.update(self._draw)
 
             if self._iteration == self._schedule.closewindow():
-                self._step_size.contents.value = self._step_size_adapter.optimum(smooth = False)
+                self._step_size.contents.value = step_size_initializer(self._draw,
+                                                                       self._dims,
+                                                                       self._step_size.contents.value,
+                                                                       self._metric,
+                                                                       self._xoshiro_seed,
+                                                                       self._ldg)
                 self._step_size_adapter.reset()
 
                 self._metric = self._metric_adapter.metric()
