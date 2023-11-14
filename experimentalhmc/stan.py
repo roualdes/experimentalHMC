@@ -82,6 +82,9 @@ class Stan(RNG):
     def __next__(self) -> FloatArray:
         return self.sample()
 
+    def warmup(self) -> int:
+        return self._warmup
+
     def sample(self) -> FloatArray:
         self._iteration += 1
         _stan_transition(self._draw,
@@ -104,6 +107,7 @@ class Stan(RNG):
             update_metric = self._schedule.firstwindow() <= self._iteration
             update_metric &= self._iteration <= self._schedule.lastwindow()
             if update_metric:
+                print(f"update metric in iteration {self._iteration}")
                 self._metric_adapter.update(self._draw)
 
             if self._iteration == self._schedule.closewindow():
@@ -113,7 +117,7 @@ class Stan(RNG):
                                                                        self._metric,
                                                                        self._xoshiro_seed,
                                                                        self._ldg)
-                self._step_size_adapter.reset()
+                self._step_size_adapter.reset(mu = 10 * self._step_size.contents.value)
 
                 self._metric = self._metric_adapter.metric()
                 self._metric_adapter.reset()

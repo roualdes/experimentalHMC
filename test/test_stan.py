@@ -11,7 +11,7 @@ import experimentalhmc as ehmc
 
 STAN_FOLDER = Path(__file__).parent.parent / "test_models"
 
-bs.set_bridgestan_path("/Users/edward/bridgestan/") # TODO this shouldn't be hardcoded
+bs.set_bridgestan_path(str(Path.home() / "bridgestan"))
 
 def bridgestan_log_density_gradient_c_wrapper(bsm):
     dim = bsm.param_unc_num()
@@ -34,13 +34,12 @@ def test_ldg():
 
     omv = ehmc.OnlineMeanVar(dims)
 
-    for m in range(1_000):
-        # print(f"iteration {m}...")
-        # print(f"step size = {stan._step_size.contents.value}")
-        x = stan.sample()
-        # print(f"sampled {x}")
+    for m in range(stan.warmup() + 1_000):
+        print(f"iteration {m}...")
+        print(f"step size = {stan._step_size.contents.value}")
 
-        omv.update(x)
+        if m > stan.warmup():
+            omv.update(x)
 
     print(f"running mean = {omv.mean()}")
     print(f"running var = {omv.var()}")

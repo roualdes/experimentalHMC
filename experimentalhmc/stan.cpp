@@ -106,6 +106,7 @@ bool build_tree(int tree_depth,
 
     double ld = leapfrog(z_, step_size, 1, gradient, log_density_gradient);
     ++(*n_leapfrog);
+    z_propose.ps_point::operator=(z_);
 
     double h = Hamiltonian(ld, z_);
     if (std::isnan(h)) {
@@ -123,8 +124,6 @@ bool build_tree(int tree_depth,
     } else {
       sum_metro_prob += std::exp(H0 - h);
     }
-
-    z_propose = z_;
 
     p_sharp_beg = z_.momentum;
     p_sharp_end = p_sharp_beg;
@@ -286,7 +285,7 @@ void stan_kernel(double* q,
 
     if (_uniform_rng(rng) > 0.5) {
       // Extend the current trajectory forward
-      z_ = z_fwd;
+      z_.ps_point::operator=(z_fwd);
       rho_bck = rho;
       p_bck_fwd = p_fwd_fwd;
       p_sharp_bck_fwd = p_sharp_fwd_fwd;
@@ -297,10 +296,10 @@ void stan_kernel(double* q,
                                  ss, H0,
                                  n_leapfrog, log_sum_weight_subtree,
                                  sum_metro_prob, max_delta_H);
-      z_fwd = z_;
+      z_fwd.ps_point::operator=(z_);
     } else {
       // Extend the current trajectory backwards
-      z_ = z_bck;
+      z_.ps_point::operator=(z_bck);
       rho_fwd = rho;
       p_fwd_bck = p_bck_bck;
       p_sharp_fwd_bck = p_sharp_bck_bck;
@@ -311,7 +310,7 @@ void stan_kernel(double* q,
                                  -1 * ss, H0,
                                  n_leapfrog, log_sum_weight_subtree,
                                  sum_metro_prob, max_delta_H);
-      z_bck = z_;
+      z_bck.ps_point::operator=(z_);
     }
 
     if (!valid_subtree) {
@@ -351,13 +350,12 @@ void stan_kernel(double* q,
     persist_criterion
       &= compute_criterion(p_sharp_bck_fwd, p_sharp_fwd_fwd, rho_extended);
 
-    if (!persist_criterion)
+    if (!persist_criterion) {
       break;
+    }
   }
 
   *accept_prob = sum_metro_prob / static_cast<double>(*n_leapfrog);
-  // std::cout << "number leapfrog = " << *n_leapfrog << std::endl;
-  // std::cout << "accept prob = " << *accept_prob << std::endl;
   Eigen::VectorXd::Map(q, dims) = z_sample.position;
   ld = (*log_density_gradient)(z_sample.position.data(), gradient.data());
   *energy = Hamiltonian(ld, z_sample);
