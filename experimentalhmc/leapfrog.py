@@ -27,7 +27,7 @@ def leapfrog(position: FloatArray,
             ld = ldg(position, gradient)
         else:
             ld = ldg(npc.as_ctypes(position), npc.as_ctypes(gradient))
-        if step != steps - 1:
+        if step != (steps - 1):
             momentum += step_size * gradient
 
     momentum += 0.5 * step_size * gradient

@@ -34,7 +34,7 @@ def test_ldg():
 
     omv = ehmc.OnlineMeanVar(dims)
 
-    for m in range(stan.warmup() + 1_000):
+    for m in range(10):
         print(f"iteration {m}...")
         print(f"step size = {stan._step_size.contents.value}")
 

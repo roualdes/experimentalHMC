@@ -105,7 +105,6 @@ bool build_tree(int tree_depth,
     bool divergent = false;
 
     double ld = (*log_density_gradient)(z_.position.data(), gradient.data());
-
     ld = leapfrog(z_, step_size, 1, gradient, log_density_gradient);
     ++(*n_leapfrog);
 

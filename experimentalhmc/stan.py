@@ -32,7 +32,7 @@ class Stan(RNG):
                  initial_draw = None,
                  initial_draw_radius = 2,
                  max_tree_depth = 10,
-                 max_delta_H = 1000,
+                 max_delta_H = 1000.0,
                  **kwargs
                  ):
 
@@ -49,7 +49,7 @@ class Stan(RNG):
         self._dims = dims
         self._delta = delta
         self._metric = metric or np.ones(self._dims)
-        self._max_delta_H = ctypes.c_double(max_delta_H)
+        self._max_delta_H = ctypes.c_double(float(max_delta_H))
         self._max_tree_depth = ctypes.c_int(int(max_tree_depth))
 
         if initial_draw:
