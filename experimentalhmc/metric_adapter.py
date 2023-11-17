@@ -19,7 +19,7 @@ class MetricAdapter():
         N = self._onlinemoments._N
         if N > 2:
             w = N / (N + 5)
-            return w * self._onlinemoments.var() + (1 - w) # * np.ones(shape = (self._chains, self._dims))
+            return w * self._onlinemoments.var() + (1 - w) # * np.ones(...)
         else:
             return np.ones_like(np._onlinemoments.var())
 

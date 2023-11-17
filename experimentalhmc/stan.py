@@ -1,7 +1,7 @@
 from .dual_average import DualAverage
 from .ehmc_cpp import _rand_normal, _rand_uniform, _stan_transition
 from .initialize_draws import initialize_draws
-from .windowedaptation import WindowedAdaptation
+from .windowedadaptation import WindowedAdaptation
 from .metric_adapter import MetricAdapter
 from .rng import RNG
 from .step_size_adapter import StepSizeAdapter
@@ -32,7 +32,7 @@ class Stan(RNG):
                  initial_draw = None,
                  initial_draw_radius = 2,
                  max_tree_depth = 10,
-                 max_delta_H = 1000,
+                 max_delta_H = 1000.0,
                  **kwargs
                  ):
 
@@ -49,7 +49,7 @@ class Stan(RNG):
         self._dims = dims
         self._delta = delta
         self._metric = metric or np.ones(self._dims)
-        self._max_delta_H = ctypes.c_double(max_delta_H)
+        self._max_delta_H = ctypes.c_double(float(max_delta_H))
         self._max_tree_depth = ctypes.c_int(int(max_tree_depth))
 
         if initial_draw:
@@ -107,7 +107,6 @@ class Stan(RNG):
             update_metric = self._schedule.firstwindow() <= self._iteration
             update_metric &= self._iteration <= self._schedule.lastwindow()
             if update_metric:
-                print(f"update metric in iteration {self._iteration}")
                 self._metric_adapter.update(self._draw)
 
             if self._iteration == self._schedule.closewindow():

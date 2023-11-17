@@ -32,9 +32,9 @@ double leapfrog(ps_point& z,
   z.momentum += 0.5 * step_size * gradient;
 
   for (int step = 0; step < steps; ++step) {
-    z.position += step_size * gradient;
+    z.position += step_size * z.momentum;
     ld = (*log_density_gradient)(z.position.data(), gradient.data());
-    if (step != steps) {
+    if (step != steps - 1) {
       z.momentum += step_size * gradient;
     }
   }
@@ -104,9 +104,11 @@ bool build_tree(int tree_depth,
   if (tree_depth == 0) {
     bool divergent = false;
 
-    double ld = leapfrog(z_, step_size, 1, gradient, log_density_gradient);
+    double ld = (*log_density_gradient)(z_.position.data(), gradient.data());
+    ld = leapfrog(z_, step_size, 1, gradient, log_density_gradient);
     ++(*n_leapfrog);
-    z_propose.ps_point::operator=(z_);
+
+    z_propose = z_;
 
     double h = Hamiltonian(ld, z_);
     if (std::isnan(h)) {
@@ -234,8 +236,10 @@ void stan_kernel(double* q,
   for (int d = 0; d < dims; ++d) {
     position(d) = q[d];
   }
+
   Eigen::VectorXd momentum(dims);
   _normal_rng(rng, momentum);
+
   ps_point z_ = ps_point(position, momentum);
 
   Eigen::VectorXd M = Eigen::VectorXd::Map(metric, dims);
