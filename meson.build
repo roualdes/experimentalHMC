@@ -22,6 +22,6 @@ py.install_sources(
     'experimentalhmc/stan.py',
     'experimentalhmc/step_size_adapter.py',
     'experimentalhmc/step_size_initializer.py',
-    'experimentalhmc/windowedaptation.py',
+    'experimentalhmc/windowedadaptation.py',
     subdir: 'experimentalhmc',
 )

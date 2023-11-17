@@ -9,7 +9,7 @@ from .onlinequantile import OnlineQuantile
 from .rng import NormalRNG, UniformRNG
 from .stan import Stan
 from .step_size_adapter import StepSizeAdapter
-
+from .windowedadaptation import WindowedAdaptation
 
 __all__ = [
     "DualAverage",
@@ -32,4 +32,5 @@ __all__ = [
     "NormalRNG",
     "Stan",
     "StepSizeAdapter",
+    "WindowedAdaptation",
 ]

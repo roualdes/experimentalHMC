@@ -1,7 +1,7 @@
 from .dual_average import DualAverage
 from .ehmc_cpp import _rand_normal, _rand_uniform, _stan_transition
 from .initialize_draws import initialize_draws
-from .windowedaptation import WindowedAdaptation
+from .windowedadaptation import WindowedAdaptation
 from .metric_adapter import MetricAdapter
 from .rng import RNG
 from .step_size_adapter import StepSizeAdapter
@@ -107,7 +107,6 @@ class Stan(RNG):
             update_metric = self._schedule.firstwindow() <= self._iteration
             update_metric &= self._iteration <= self._schedule.lastwindow()
             if update_metric:
-                print(f"update metric in iteration {self._iteration}")
                 self._metric_adapter.update(self._draw)
 
             if self._iteration == self._schedule.closewindow():
