@@ -12,15 +12,13 @@ class ps_point {
 public:
   Eigen::VectorXd position;
   Eigen::VectorXd momentum;
-  template<typename Derived>
-  explicit ps_point(const Eigen::MatrixBase<Derived>& q,
-                    const Eigen::MatrixBase<Derived>& p) : position(q), momentum(p) {}
+  explicit ps_point(Eigen::VectorXd q, Eigen::VectorXd p) : position(q), momentum(p) {}
 };
 
 static constexpr double INFTY = std::numeric_limits<double>::infinity();
 
 double Hamiltonian(const double log_density, const ps_point z) {
-  return -log_density + 0.5 * z.momentum.dot(z.momentum);
+  return -log_density + 0.5 * z.momentum.squaredNorm();
 }
 
 double leapfrog(ps_point& z,
@@ -29,17 +27,17 @@ double leapfrog(ps_point& z,
                 Eigen::VectorXd& gradient,
                 double(*log_density_gradient)(double* q, double* grad)) {
   double ld;
-  z.momentum += 0.5 * step_size * gradient;
+  z.momentum += 0.5 * step_size.cwiseProduct(gradient);
 
   for (int step = 0; step < steps; ++step) {
-    z.position += step_size * z.momentum;
+    z.position += step_size.cwiseProduct(z.momentum);
     ld = (*log_density_gradient)(z.position.data(), gradient.data());
-    if (step != steps - 1) {
-      z.momentum += step_size * gradient;
+    if (steps - 1 != step) {
+      z.momentum += step_size.cwiseProduct(gradient);
     }
   }
 
-  z.momentum += 0.5 * step_size * gradient;
+  z.momentum += 0.5 * step_size.cwiseProduct(gradient);
 
   return ld;
 }
@@ -49,9 +47,13 @@ double _uniform_rng(uint64_t* rng) {
   return xoshiro_rand(rng);
 }
 
-void _normal_rng(uint64_t* rng, Eigen::VectorXd& z) {
-  for (auto &zn : z) {
-    phi_inv(_uniform_rng(rng), &zn);
+void _normal_rng(uint64_t* s, Eigen::VectorXd& x) {
+  int err;
+  for (auto &xn : x) {
+    err = -1;
+    while (err != 0) {
+      err = phi_inv(xoshiro_rand(s), &xn);
+    }
   }
 }
 
@@ -96,17 +98,17 @@ bool build_tree(int tree_depth,
                 Eigen::VectorXd& p_end,
                 Eigen::VectorXd step_size,
                 double H0,
+                bool* divergent,
                 int* n_leapfrog,
                 double& log_sum_weight,
                 double& sum_metro_prob,
                 double max_delta_H) {
   // Base case
   if (tree_depth == 0) {
-    bool divergent = false;
 
     double ld = (*log_density_gradient)(z_.position.data(), gradient.data());
     ld = leapfrog(z_, step_size, 1, gradient, log_density_gradient);
-    ++(*n_leapfrog);
+    ++*n_leapfrog;
 
     z_propose = z_;
 
@@ -115,26 +117,27 @@ bool build_tree(int tree_depth,
       h = INFTY;
     }
 
-    if ((h - H0) > max_delta_H) {
-      divergent = true;
+    if (h - H0 > max_delta_H) {
+      *divergent = true;
     }
 
-    log_sum_weight = log_sum_exp(log_sum_weight, H0 - h);
+    double delta_H = H0 - h;
+    log_sum_weight = log_sum_exp(log_sum_weight, delta_H);
 
-    if (H0 - h > 0) {
+    if (delta_H > 0) {
       sum_metro_prob += 1;
     } else {
-      sum_metro_prob += std::exp(H0 - h);
+      sum_metro_prob += std::exp(delta_H);
     }
 
     p_sharp_beg = z_.momentum;
-    p_sharp_end = p_sharp_beg;
+    p_sharp_end = z_.momentum;
 
     rho += z_.momentum;
     p_beg = z_.momentum;
-    p_end = p_beg;
+    p_end = z_.momentum;
 
-    return !divergent;
+    return !*divergent;
   }
   // General recursion
 
@@ -151,7 +154,7 @@ bool build_tree(int tree_depth,
     = build_tree(tree_depth - 1, log_density_gradient, gradient, rng, z_, z_propose,
                  p_sharp_beg, p_sharp_init_end,
                  rho_init, p_beg, p_init_end,
-                 step_size, H0,
+                 step_size, H0, divergent,
                  n_leapfrog, log_sum_weight_init,
                  sum_metro_prob, max_delta_H);
 
@@ -174,7 +177,7 @@ bool build_tree(int tree_depth,
     = build_tree(tree_depth - 1, log_density_gradient, gradient, rng, z_, z_propose_final,
                  p_sharp_final_beg, p_sharp_end,
                  rho_final, p_final_beg, p_end,
-                 step_size, H0,
+                 step_size, H0, divergent,
                  n_leapfrog, log_sum_weight_final,
                  sum_metro_prob, max_delta_H);
 
@@ -231,12 +234,7 @@ void stan_kernel(double* q,
                  const double max_delta_H,
                  const int max_tree_depth) {
 
-
-  Eigen::VectorXd position(dims);
-  for (int d = 0; d < dims; ++d) {
-    position(d) = q[d];
-  }
-
+  Eigen::VectorXd position = Eigen::VectorXd::Map(q, dims);
   Eigen::VectorXd momentum(dims);
   _normal_rng(rng, momentum);
 
@@ -276,6 +274,8 @@ void stan_kernel(double* q,
 
   double log_sum_weight = 0.0;
   double sum_metro_prob = 0.0;
+
+  *divergent = false;
   *n_leapfrog = 0;
   *tree_depth = 0;
 
@@ -289,7 +289,7 @@ void stan_kernel(double* q,
 
     if (_uniform_rng(rng) > 0.5) {
       // Extend the current trajectory forward
-      z_.ps_point::operator=(z_fwd);
+      z_ = z_fwd;
       rho_bck = rho;
       p_bck_fwd = p_fwd_fwd;
       p_sharp_bck_fwd = p_sharp_fwd_fwd;
@@ -297,13 +297,13 @@ void stan_kernel(double* q,
       valid_subtree = build_tree(*tree_depth, log_density_gradient, gradient, rng, z_, z_propose,
                                  p_sharp_fwd_bck, p_sharp_fwd_fwd,
                                  rho_fwd, p_fwd_bck, p_fwd_fwd,
-                                 ss, H0,
+                                 ss, H0, divergent,
                                  n_leapfrog, log_sum_weight_subtree,
                                  sum_metro_prob, max_delta_H);
-      z_fwd.ps_point::operator=(z_);
+      z_fwd = z_;
     } else {
       // Extend the current trajectory backwards
-      z_.ps_point::operator=(z_bck);
+      z_ = z_bck;
       rho_fwd = rho;
       p_fwd_bck = p_bck_bck;
       p_sharp_fwd_bck = p_sharp_bck_bck;
@@ -311,19 +311,18 @@ void stan_kernel(double* q,
       valid_subtree = build_tree(*tree_depth, log_density_gradient, gradient, rng, z_, z_propose,
                                  p_sharp_bck_fwd, p_sharp_bck_bck,
                                  rho_bck, p_bck_fwd, p_bck_bck,
-                                 -1 * ss, H0,
+                                 -1 * ss, H0, divergent,
                                  n_leapfrog, log_sum_weight_subtree,
                                  sum_metro_prob, max_delta_H);
-      z_bck.ps_point::operator=(z_);
+      z_bck = z_;
     }
 
     if (!valid_subtree) {
-      *divergent = true;
       break;
     }
 
     // Sample from accepted subtree
-    ++(*tree_depth);
+    ++*tree_depth;
 
     if (log_sum_weight_subtree > log_sum_weight) {
       z_sample = z_propose;

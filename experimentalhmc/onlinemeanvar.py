@@ -18,8 +18,11 @@ class OnlineMeanVar():
 
     def reset(self):
         self._N = 0
-        self._m[:] = 0
-        self._v[:] = 0
+        self._m[:] = 0.0
+        self._v[:] = 0.0
+
+    def N(self):
+        return self._N
 
     def mean(self):
         return self._m

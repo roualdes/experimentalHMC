@@ -30,18 +30,14 @@ def test_ldg():
     bsm = bs.StanModel.from_stan_file(stan_file = stan_model, model_data = stan_data)
     ldg = bridgestan_log_density_gradient_c_wrapper(bsm)
     dims = bsm.param_unc_num()
-    stan = ehmc.Stan(dims, ldg, seed = 204)
+    stan = ehmc.Stan(dims, ldg, warmup = 5_000)
 
     omv = ehmc.OnlineMeanVar(dims)
 
-    for m in range(10):
-        print(f"iteration {m}...")
-        print(f"step size = {stan._step_size.contents.value}")
-
+    for m in range(stan.warmup() + 5_000):
         x = stan.sample()
-
         if m > stan.warmup():
-            omv.update(x)
+            omv.update(bsm.param_constrain(x))
 
-    print(f"running mean = {omv.mean()}")
-    print(f"running var = {omv.var()}")
+    assert np.allclose(np.round(omv.mean(), 2), np.array([1.01, 0.42]), atol = 1e-2)
+    assert np.allclose(np.round(omv.std(), 2), np.array([0.06, 0.04]), atol = 1e-2)

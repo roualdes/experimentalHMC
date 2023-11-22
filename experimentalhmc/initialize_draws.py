@@ -11,27 +11,27 @@ def initialize_draws(seed, dims, ldg, initial_draw_radius = 2, initial_draw_atte
 
     attempts = initial_draw_attempts
     attempt = 0
+
     initialized = False
-
     radius = initial_draw_radius
-    initial_draw = generate_draw(seed, dims, radius)
-
-    gradient = np.empty_like(initial_draw)
-    momentum = np.empty_like(initial_draw)
+    gradient = np.empty(dims)
 
     while attempt < attempts and not initialized:
+        initial_draw = generate_draw(seed, dims, radius)
+        # TODO probably need some logic to call
+        # ldg(initial_draw, gradient)
+        # when appropriate
         ld = ldg(npc.as_ctypes(initial_draw), npc.as_ctypes(gradient))
 
-        if np.isfinite(ld) and ~np.isnan(ld):
+        if np.isfinite(ld) and not np.isnan(ld):
             initialized = True
 
         g = np.sum(gradient)
-        if ~np.isfinite(g) or np.isnan(g):
+        if not np.isfinite(g) or np.isnan(g):
             initialized = False
             continue
 
         attempt += 1
-        initial_draw = generate_draw(seed, dims, radius)
 
     if attempt > attempts:
         print(f"Failed to find initial values in {attempt} attempts")

@@ -16,10 +16,10 @@ class MetricAdapter():
         self._onlinemoments.reset()
 
     def metric(self):
-        N = self._onlinemoments._N
+        N = self._onlinemoments.N()
         if N > 2:
             w = N / (N + 5)
-            return w * self._onlinemoments.var() + (1 - w) # * np.ones(...)
+            return w * self._onlinemoments.var() + (1 - w) * 1e-3
         else:
             return np.ones_like(np._onlinemoments.var())
 

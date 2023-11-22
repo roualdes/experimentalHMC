@@ -52,12 +52,12 @@ class Stan(RNG):
         self._max_delta_H = ctypes.c_double(float(max_delta_H))
         self._max_tree_depth = ctypes.c_int(int(max_tree_depth))
 
-        if initial_draw:
+        if initial_draw is not None:
             self._draw = initial_draw
         else:
             self._draw = initialize_draws(self._xoshiro_seed, self._dims, self._ldg,  **kwargs)
 
-        self._step_size = ctypes.pointer(ctypes.c_double(step_size))
+        self._step_size = ctypes.pointer(ctypes.c_double(float(step_size)))
         if initialize_step_size:
             self._step_size.contents.value = step_size_initializer(self._draw,
                                                                    self._dims,
@@ -86,7 +86,6 @@ class Stan(RNG):
         return self._warmup
 
     def sample(self) -> FloatArray:
-        self._iteration += 1
         _stan_transition(self._draw,
                          self._ldg,
                          self._xoshiro_seed,
@@ -116,7 +115,7 @@ class Stan(RNG):
                                                                        self._metric,
                                                                        self._xoshiro_seed,
                                                                        self._ldg)
-                self._step_size_adapter.reset(mu = 10 * self._step_size.contents.value)
+                self._step_size_adapter.reset(mu = np.log(10 * self._step_size.contents.value))
 
                 self._metric = self._metric_adapter.metric()
                 self._metric_adapter.reset()
@@ -124,7 +123,10 @@ class Stan(RNG):
                 self._schedule.calculate_next_window()
 
         else:
+            pass
             self._step_size.contents.value = self._step_size_adapter.optimum(smooth = True)
+
+        self._iteration += 1
 
         return self._draw
 
@@ -132,11 +134,11 @@ class Stan(RNG):
         """Various properties that might change each iteration"""
         return {
             "iteration": self._iteration,
-            "adapt_stat": self._adapt_stat,
-            "divergent": self._divergent,
-            "n_leapfrog": self._n_leapfrog,
-            "tree_depth": self._tree_depth,
-            "energy": self._energy,
-            "step_size": self._step_size,
             "metric": self._metric,
+            "adapt_stat": self._adapt_stat.contents.value,
+            "divergent": self._divergent.contents.value,
+            "n_leapfrog": self._n_leapfrog.contents.value,
+            "tree_depth": self._tree_depth.contents.value,
+            "energy": self._energy.contents.value,
+            "step_size": self._step_size.contents.value,
         }

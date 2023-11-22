@@ -14,5 +14,5 @@ def test_onlinemean():
         ma.update(x[n])
 
     w = N / (N + 5)
-    assert np.allclose(ma.metric(), w * np.var(x, axis = 0) + (1 - w))
+    assert np.allclose(ma.metric(), w * np.var(x, axis = 0) + (1 - w) * 1e-3)
     assert np.allclose(ma.mean(), np.mean(x, axis = 0))
