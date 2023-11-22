@@ -1,4 +1,4 @@
-from .ehmc_cpp import _rand_normal, _rand_uniform, _set_seed
+from .ehmc import normal_rand, uniform_rand, _set_seed
 
 import ctypes
 
@@ -12,8 +12,8 @@ class RNG():
 
 class NormalRNG(RNG):
     def rand(self, N: int = None):
-        return _rand_normal(self._xoshiro_seed, N)
+        return normal_rand(self._xoshiro_seed, N)
 
 class UniformRNG(RNG):
     def rand(self, N: int = None):
-        return _rand_uniform(self._xoshiro_seed, N)
+        return uniform_rand(self._xoshiro_seed, N)

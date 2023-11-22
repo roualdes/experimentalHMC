@@ -1,5 +1,5 @@
 from .dual_average import DualAverage
-from .ehmc_cpp import _rand_normal, _rand_uniform, _stan_transition
+from .ehmc import normal_rand, uniform_rand, _stan_transition
 from .initialize_draws import initialize_draws
 from .windowedadaptation import WindowedAdaptation
 from .metric_adapter import MetricAdapter

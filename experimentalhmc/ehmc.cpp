@@ -21,17 +21,17 @@ extern "C" {
     set_seed(x, s);
   }
 
-  double uniform_rng(uint64_t* s) {
+  double uniform_rand(uint64_t* s) {
     return xoshiro_rand(s);
   }
 
-  void uniform_rng_broadcast(uint64_t* s, int N, double* x) {
+  void uniform_rand_broadcast(uint64_t* s, int N, double* x) {
     for (int n = 0; n < N; ++n) {
       x[n] = xoshiro_rand(s);
     }
   }
 
-  double normal_rng(uint64_t* s) {
+  double normal_rand(uint64_t* s) {
     double z;
     int err = -1;
     while (err != 0) {
@@ -40,9 +40,9 @@ extern "C" {
     return z;
   }
 
-  void normal_rng_broadcast(uint64_t* s, int N, double* z) {
+  void normal_rand_broadcast(uint64_t* s, int N, double* z) {
     for (int n = 0; n < N; ++n) {
-      z[n] = normal_rng(s);
+      z[n] = normal_rand(s);
     }
   }
 

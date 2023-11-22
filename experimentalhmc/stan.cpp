@@ -43,16 +43,16 @@ double leapfrog(ps_point& z,
 }
 
 
-double _uniform_rng(uint64_t* rng) {
+double randu(uint64_t* rng) {
   return xoshiro_rand(rng);
 }
 
-void _normal_rng(uint64_t* s, Eigen::VectorXd& x) {
+void randn(uint64_t* rng, Eigen::VectorXd& x) {
   int err;
   for (auto &xn : x) {
     err = -1;
     while (err != 0) {
-      err = phi_inv(xoshiro_rand(s), &xn);
+      err = phi_inv(xoshiro_rand(rng), &xn);
     }
   }
 }
@@ -195,7 +195,7 @@ bool build_tree(int tree_depth,
   } else {
     double accept_prob
       = std::exp(log_sum_weight_final - log_sum_weight_subtree);
-    if (_uniform_rng(rng) < accept_prob) {
+    if (randu(rng) < accept_prob) {
       z_propose = z_propose_final;
     }
   }
@@ -236,7 +236,7 @@ void stan_kernel(double* q,
 
   Eigen::VectorXd position = Eigen::VectorXd::Map(q, dims);
   Eigen::VectorXd momentum(dims);
-  _normal_rng(rng, momentum);
+  randn(rng, momentum);
 
   ps_point z_ = ps_point(position, momentum);
 
@@ -287,7 +287,7 @@ void stan_kernel(double* q,
     bool valid_subtree = false;
     double log_sum_weight_subtree = -INFTY;
 
-    if (_uniform_rng(rng) > 0.5) {
+    if (randu(rng) > 0.5) {
       // Extend the current trajectory forward
       z_ = z_fwd;
       rho_bck = rho;
@@ -328,7 +328,7 @@ void stan_kernel(double* q,
       z_sample = z_propose;
     } else {
       double accept_prob = std::exp(log_sum_weight_subtree - log_sum_weight);
-      if (_uniform_rng(rng) < accept_prob) {
+      if (randu(rng) < accept_prob) {
         z_sample = z_propose;
       }
     }

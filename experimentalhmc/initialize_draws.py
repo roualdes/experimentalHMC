@@ -1,10 +1,10 @@
-from .ehmc_cpp import _rand_normal, _rand_uniform
+from .ehmc import uniform_rand
 
 import numpy as np
 import numpy.ctypeslib as npc
 
 def generate_draw(seed, dims, radius):
-    U = _rand_uniform(seed, dims)
+    U = uniform_rand(seed, dims)
     return radius * (2 * U - 1)
 
 def initialize_draws(seed, dims, ldg, initial_draw_radius = 2, initial_draw_attempts = 100):

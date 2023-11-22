@@ -1,4 +1,4 @@
-from .ehmc_cpp import _normal_invcdf, _normal_invcdf_broadcast
+from .ehmc import _normal_invcdf, _normal_invcdf_broadcast
 
 import ctypes
 

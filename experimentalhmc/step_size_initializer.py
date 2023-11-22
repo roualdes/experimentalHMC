@@ -1,4 +1,4 @@
-from .ehmc_cpp import _rand_normal, _rand_uniform
+from .ehmc import normal_rand, uniform_rand
 from .leapfrog import leapfrog
 
 import numpy as np
@@ -7,7 +7,7 @@ import numpy.ctypeslib as npc
 def step_size_initializer(position, dims, step_size, metric, seed, ldg):
 
     q = np.copy(position)
-    momentum = _rand_normal(seed, dims)
+    momentum = normal_rand(seed, dims)
     gradient = np.empty_like(momentum)
 
     ld = ldg(npc.as_ctypes(q), npc.as_ctypes(gradient))
@@ -22,7 +22,7 @@ def step_size_initializer(position, dims, step_size, metric, seed, ldg):
     direction = 1 if dH > np.log(0.8) else -1
 
     while True:
-        momentum = _rand_normal(seed, dims)
+        momentum = normal_rand(seed, dims)
         q = np.copy(position)
         ld = ldg(npc.as_ctypes(q), npc.as_ctypes(gradient))
         H0 = -ld + 0.5 * np.dot(momentum, momentum)
