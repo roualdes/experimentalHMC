@@ -13,11 +13,11 @@ def test_onlinemeanvar():
     for n in range(N):
         omv.update(x[n])
 
-    assert np.allclose(omv.mean(), np.mean(x, axis = 0))
-    assert np.allclose(omv.var(), np.var(x, axis = 0))
-    assert np.allclose(omv.std(), np.std(x, axis = 0))
+    assert np.allclose(omv.location(), np.mean(x, axis = 0))
+    assert np.allclose(omv.scale(), np.std(x, axis = 0))
+    assert np.isclose(omv.N(), N)
 
     omv.reset()
-    assert np.allclose(omv.mean(), np.zeros(D))
-    assert np.allclose(omv.var(), np.zeros(D))
-    assert np.isclose(omv._N, 0)
+    assert np.allclose(omv.location(), np.zeros(D))
+    assert np.allclose(omv.scale(), np.zeros(D))
+    assert np.isclose(omv.N(), 0)

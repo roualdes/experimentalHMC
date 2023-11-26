@@ -1,7 +1,7 @@
 from .convergence import ess_basic, ess_mean, ess_tail, ess_quantile, ess_std, rhat_basic, rhat_max, mcse_mean, mcse_std
 from .dual_average import DualAverage
 from .leapfrog import leapfrog
-from .metric_adapter import MetricAdapter
+from .metric_adapter import MetricOnlineMAD, MetricOnlineMeanVar
 from .normal import normal_invcdf
 from .onlinemad import OnlineMAD
 from .onlinemeanvar import OnlineMeanVar
@@ -19,7 +19,8 @@ __all__ = [
     "ess_std",
     "ess_tail",
     "leapfrog",
-    "MetricAdapter",
+    "MetricOnlineMAD",
+    "MetricOnlineMeanVar",
     "OnlineMAD",
     "OnlineMeanVar",
     "OnlineQuantile",

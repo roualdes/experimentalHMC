@@ -24,11 +24,8 @@ class OnlineMeanVar():
     def N(self):
         return self._N
 
-    def mean(self):
+    def location(self):
         return self._m
 
-    def var(self):
-        return self._v
-
-    def std(self):
+    def scale(self):
         return np.sqrt(self._v)

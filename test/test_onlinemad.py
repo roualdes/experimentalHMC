@@ -15,9 +15,9 @@ def test_onlinequantile():
     omad = ehmc.OnlineMAD(D)
 
     for n in range(N):
-        omad.update(x[n, :])
+        omad.update(x[n])
 
-    om = omad.mad()
+    om = omad.scale()
     bm = [mad(x[:, d]) for d in range(D)]
     assert np.isclose(om[0], bm[0], atol = 1e-1)
     assert np.isclose(om[1], bm[1], atol = 1e-1)

@@ -2,7 +2,7 @@ from .dual_average import DualAverage
 from .ehmc import normal_rand, uniform_rand, _stan_transition
 from .initialize_draws import initialize_draws
 from .windowedadaptation import WindowedAdaptation
-from .metric_adapter import MetricAdapter
+from .metric_adapter import MetricOnlineMeanVar, MetricOnlineMAD
 from .rng import RNG
 from .step_size_adapter import StepSizeAdapter
 from .step_size_initializer import step_size_initializer
@@ -67,7 +67,7 @@ class Stan(RNG):
                                                                    self._ldg)
 
         self._schedule = WindowedAdaptation(self._warmup, **kwargs)
-        self._metric_adapter = MetricAdapter(self._dims)
+        self._metric_adapter = MetricOnlineMeanVar(self._dims)
         self._step_size_adapter = StepSizeAdapter(self._delta, **kwargs)
 
         self._adapt_stat = ctypes.pointer(ctypes.c_double(0.0))

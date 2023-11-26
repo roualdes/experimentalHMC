@@ -39,5 +39,5 @@ def test_ldg():
         if m > stan.warmup():
             omv.update(bsm.param_constrain(x))
 
-    assert np.allclose(np.round(omv.mean(), 2), np.array([1.01, 0.42]), atol = 1e-2)
-    assert np.allclose(np.round(omv.std(), 2), np.array([0.06, 0.04]), atol = 1e-2)
+    assert np.allclose(np.round(omv.location(), 2), np.array([1.01, 0.42]), atol = 1e-2)
+    assert np.allclose(np.round(omv.scale(), 2), np.array([0.06, 0.04]), atol = 1e-2)
