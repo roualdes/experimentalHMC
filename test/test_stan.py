@@ -16,10 +16,18 @@ bs.set_bridgestan_path(str(Path.home() / "bridgestan"))
 def bridgestan_log_density_gradient_c_wrapper(bsm):
     dim = bsm.param_unc_num()
     def bsm_c_wrapper(position, gradient):
-        ld, _ = bsm.log_density_gradient(npc.as_array(position, shape = (dim,)),
-                                         out = npc.as_array(gradient, shape = (dim,)))
+        ld, _ = bsm.log_density_gradient(position, out = gradient)
         return ld
     return bsm_c_wrapper
+
+# def bridgestan_log_density_gradient_c_wrapper(bsm):
+#     dim = bsm.param_unc_num()
+#     def bsm_c_wrapper(position, gradient):
+#         ld = ctypes.pointer(ctypes.c_double())
+#         err = ctypes.pointer(ctypes.c_char_p())
+#         bsm._ldg(bsm.model, int(True), int(True), position, ld, gradient, err)
+#         return ld.contents.value
+#     return bsm_c_wrapper
 
 def test_ldg():
     model = "gaussian"
