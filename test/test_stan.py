@@ -16,7 +16,7 @@ bs.set_bridgestan_path(str(Path.home() / "bridgestan"))
 def bridgestan_log_density_gradient_c_wrapper(bsm):
     dim = bsm.param_unc_num()
     def bsm_c_wrapper(position, gradient):
-        ld, _ = bsm.log_density_gradient(position, out = gradient)
+        ld = bsm.ldg_ctypes(position, gradient)
         return ld
     return bsm_c_wrapper
 
