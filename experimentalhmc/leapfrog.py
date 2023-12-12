@@ -16,17 +16,18 @@ def leapfrog(position: FloatArray,
              gradient: FloatArray,
              ldg: Callable[[FloatArray, FloatArray], float]):
 
-    ldg_function = isfunction(ldg) # false if a CFUNCTYPE wrapped function, I think
+    # ldg_function = isfunction(ldg) # false if a CFUNCTYPE wrapped function, I think
 
-    ld = 0
+    ld = 0.0
     momentum += 0.5 * step_size * gradient
 
     for step in range(steps):
         position += step_size * momentum
-        if ldg_function:
-            ld = ldg(position, gradient)
-        else:
-            ld = ldg(npc.as_ctypes(position), npc.as_ctypes(gradient))
+        ld = ldg(position, gradient)
+        # if ldg_function:
+        #     ld = ldg(position, gradient)
+        # else:
+        #     ld = ldg(npc.as_ctypes(position), npc.as_ctypes(gradient))
         if step != (steps - 1):
             momentum += step_size * gradient
 

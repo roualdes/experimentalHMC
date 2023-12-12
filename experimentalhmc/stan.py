@@ -23,7 +23,7 @@ class Stan(RNG):
     def __init__(self,
                  dims,
                  log_density_gradient,
-                 seed = np.random.default_rng().integers(0, np.iinfo(np.int64).max),
+                 seed = None,
                  warmup = 1000,
                  metric = None,
                  step_size = 1.0,
@@ -36,12 +36,16 @@ class Stan(RNG):
                  **kwargs
                  ):
 
+        self._log_density_gradient = log_density_gradient
         C_LDG = ctypes.CFUNCTYPE(ctypes.c_double,
                                  ctypes.POINTER(ctypes.c_double),
                                  ctypes.POINTER(ctypes.c_double))
-        self._ldg = C_LDG(log_density_gradient)
+        self._ldg = C_LDG(self._log_density_gradient)
 
-        self._seed = seed
+        if seed is None:
+            self._seed = np.random.default_rng().integers(0, np.iinfo(np.int64).max)
+        else:
+            self._seed = seed
         super().__init__(self._seed)
 
         self._iteration = 0
@@ -55,7 +59,10 @@ class Stan(RNG):
         if initial_draw is not None:
             self._draw = initial_draw
         else:
-            self._draw = initialize_draws(self._xoshiro_seed, self._dims, self._ldg,  **kwargs)
+            self._draw = initialize_draws(self._xoshiro_seed,
+                                          self._dims,
+                                          self._log_density_gradient,
+                                          **kwargs)
 
         self._step_size = ctypes.pointer(ctypes.c_double(float(step_size)))
         if initialize_step_size:
@@ -64,7 +71,7 @@ class Stan(RNG):
                                                                    self._step_size.contents.value,
                                                                    self._metric,
                                                                    self._xoshiro_seed,
-                                                                   self._ldg)
+                                                                   self._log_density_gradient)
 
         self._schedule = WindowedAdaptation(self._warmup, **kwargs)
         self._metric_adapter = MetricOnlineMeanVar(self._dims)
@@ -114,7 +121,7 @@ class Stan(RNG):
                                                                        self._step_size.contents.value,
                                                                        self._metric,
                                                                        self._xoshiro_seed,
-                                                                       self._ldg)
+                                                                       self._log_density_gradient)
                 self._step_size_adapter.reset(mu = np.log(10 * self._step_size.contents.value))
 
                 self._metric = self._metric_adapter.metric()

@@ -18,10 +18,7 @@ def initialize_draws(seed, dims, ldg, initial_draw_radius = 2, initial_draw_atte
 
     while attempt < attempts and not initialized:
         initial_draw = generate_draw(seed, dims, radius)
-        # TODO probably need some logic to call
-        # ldg(initial_draw, gradient)
-        # when appropriate
-        ld = ldg(npc.as_ctypes(initial_draw), npc.as_ctypes(gradient))
+        ld = ldg(initial_draw, gradient)
 
         if np.isfinite(ld) and not np.isnan(ld):
             initialized = True
