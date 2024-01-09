@@ -7,8 +7,6 @@ from .rng import RNG
 from .step_size_adapter import StepSizeAdapter
 from .step_size_initializer import step_size_initializer
 
-
-from numpy.ctypeslib import ndpointer
 from typing import Iterator
 
 import ctypes
@@ -17,7 +15,6 @@ import numpy as np
 import numpy.typing as npt
 
 FloatArray = npt.NDArray[np.float64]
-double_array = ndpointer(dtype=ctypes.c_double, flags=("C_CONTIGUOUS"))
 
 class Stan(RNG):
     def __init__(self,
@@ -39,7 +36,8 @@ class Stan(RNG):
         self._log_density_gradient = log_density_gradient
         C_LDG = ctypes.CFUNCTYPE(ctypes.c_double,
                                  ctypes.POINTER(ctypes.c_double),
-                                 ctypes.POINTER(ctypes.c_double))
+                                 ctypes.POINTER(ctypes.c_double)
+                                 )
         self._ldg = C_LDG(self._log_density_gradient)
 
         if seed is None:
