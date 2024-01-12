@@ -14,7 +14,7 @@ def test_dualaverage_01():
     da._sbar = 0.00513820936953773
     da._xbar = 0.886351350781597
     # end
-    da.update(0.5 - 1)
+    da.update(0.5 - 1.0)
 
     assert np.allclose(da.optimum(smooth = False), 3.95863527373545)
 

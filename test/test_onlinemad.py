@@ -17,8 +17,12 @@ def test_onlinequantile():
     for n in range(N):
         omad.update(x[n])
 
-    om = omad.scale()
-    bm = [mad(x[:, d]) for d in range(D)]
-    assert np.isclose(om[0], bm[0], atol = 1e-1)
-    assert np.isclose(om[1], bm[1], atol = 1e-1)
-    assert np.isclose(om[2], bm[2], atol = 1e-1)
+    bmed = np.zeros(D)
+    bmad = np.zeros(D)
+    for d in range(D):
+        y = x[:, d]
+        bmed[d] = np.median(y)
+        bmad[d] = mad(y)
+
+    assert np.allclose(np.round(omad.location(), 2), np.round(bmed, 2), atol = 1e-1)
+    assert np.allclose(np.round(omad.scale(), 2), np.round(bmad, 2), atol = 1e-1)
