@@ -33,7 +33,7 @@ def choice_rand(xoshiro_key, x, p = None, N: int = None):
     else:
         idx = bisect.bisect_right(cdf, us)
 
-    return idx
+    return x[idx]
 
 
 def normal_rand(xoshiro_key, N: int = None):
