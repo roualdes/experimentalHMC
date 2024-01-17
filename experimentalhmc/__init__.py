@@ -1,3 +1,4 @@
+from .adam import Adam
 from .convergence import ess_basic, ess_mean, ess_tail, ess_quantile, ess_std, rhat_basic, rhat_max, mcse_mean, mcse_std
 from .dual_average import DualAverage
 from .leapfrog import leapfrog
@@ -6,12 +7,16 @@ from .normal import normal_invcdf
 from .onlinemad import OnlineMAD
 from .onlinemeanvar import OnlineMeanVar
 from .onlinequantile import OnlineQuantile
-from .rng import NormalRNG, UniformRNG
+from .power_two import power_two
+from .rand import choice_rand, normal_rand, uniform_rand
+from .rng import RNG
+from .sbhmc import SBHMC
 from .stan import Stan
 from .step_size_adapter import StepSizeAdapter
 from .windowedadaptation import WindowedAdaptation
 
 __all__ = [
+    "Adam",
     "DualAverage",
     "ess_basic",
     "ess_mean",
@@ -21,16 +26,20 @@ __all__ = [
     "leapfrog",
     "MetricOnlineMAD",
     "MetricOnlineMeanVar",
+    "normal_invcdf",
     "OnlineMAD",
     "OnlineMeanVar",
     "OnlineQuantile",
+    "RNG",
+    "choice_rand",
+    "normal_rand",
+    "uniform_rand",
     "rhat_basic",
     "rhat_max",
     "mcse_mean",
     "mcse_std",
-    "normal_invcdf",
-    "UniformRNG",
-    "NormalRNG",
+    "power_two",
+    "SBHMC",
     "Stan",
     "StepSizeAdapter",
     "WindowedAdaptation",

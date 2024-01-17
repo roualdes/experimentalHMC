@@ -11,7 +11,7 @@ import experimentalhmc as ehmc
 
 STAN_FOLDER = Path(__file__).parent.parent / "test_models"
 
-bs.set_bridgestan_path(str(Path.home() / "bridgestan"))
+bs.set_bridgestan_path(Path.home() / "bridgestan")
 
 def bridgestan_log_density_gradient(bsm):
     def bsm_ldg(position, gradient):
@@ -23,7 +23,8 @@ def bridgestan_log_density_gradient(bsm):
         return ld
     return bsm_ldg
 
-def test_gaussian():
+def test_bridgestan_gaussian():
+    # test BridgeStan model
     model = "gaussian"
 
     stan_model = f"{str(STAN_FOLDER)}/{model}/{model}.stan"
@@ -34,12 +35,15 @@ def test_gaussian():
     dims = bsm.param_unc_num()
     stan = ehmc.Stan(dims, ldg, warmup = 5_000)
 
-    omv = ehmc.OnlineMeanVar(dims)
+    omv = ehmc.OnlineMeanVar(stan.dims())
+    q = np.zeros(stan.dims())
 
     for m in range(stan.warmup() + 5_000):
         x = stan.sample()
         if m > stan.warmup():
-            omv.update(bsm.param_constrain(x))
+            for chain in range(stan.chains()):
+                q = bsm.param_constrain(x[chain])
+            omv.update(q)
 
     assert np.allclose(np.round(omv.location(), 2),
                        np.array([1.01, 0.42]),
@@ -71,3 +75,34 @@ def test_gaussian():
 #                        np.array([1.01, 0.2, 10.54, 0.36]), atol = 1e-2)
 #     assert np.allclose(np.round(omv.scale(), 2),
 #                        np.array([0.04, 0.01, 0.71, 0.03]), atol = 1e-2)
+
+def test_python_gaussian():
+    # test Python model
+
+    def ldg_wrapper(dims):
+        def ldg(position, gradient):
+            q = np.ctypeslib.as_array(position, shape = (dims,))
+            g = np.ctypeslib.as_array(gradient, shape = (dims,))
+            g[:] = -q
+            return -0.5 * np.dot(q, q)
+        return ldg
+
+    dims = 10
+    ldg = ldg_wrapper(dims)
+    stan = ehmc.Stan(dims, ldg, warmup = 5_000)
+    omv = ehmc.OnlineMeanVar(stan.dims())
+
+    for m in range(stan.warmup() + 5_000):
+        x = stan.sample()
+        d = stan.diagnostics()
+        if m > stan.warmup():
+            for chain in range(stan.chains()):
+                omv.update(x[chain])
+
+    assert np.allclose(np.round(omv.location(), 1),
+                       np.zeros(dims),
+                       atol = 1e-2)
+
+    assert np.allclose(np.round(omv.scale(), 1),
+                       np.ones(dims),
+                       atol = 1e-2)

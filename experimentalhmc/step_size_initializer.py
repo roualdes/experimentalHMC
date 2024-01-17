@@ -1,12 +1,12 @@
-from .ehmc import normal_rand, uniform_rand
+from .rand import normal_rand, uniform_rand
 from .leapfrog import leapfrog
 
 import numpy as np
 
-def step_size_initializer(position, dims, step_size, metric, seed, ldg):
+def step_size_initializer(position, dims, step_size, metric, xoshiro_key, ldg):
 
     q = np.copy(position)
-    momentum = normal_rand(seed, dims)
+    momentum = normal_rand(xoshiro_key, dims)
     gradient = np.empty_like(momentum)
 
     ld = ldg(q, gradient)
@@ -21,7 +21,7 @@ def step_size_initializer(position, dims, step_size, metric, seed, ldg):
     direction = 1 if dH > np.log(0.8) else -1
 
     while True:
-        momentum = normal_rand(seed, dims)
+        momentum = normal_rand(xoshiro_key, dims)
         q = np.copy(position)
         ld = ldg(q, gradient)
         H0 = -ld + 0.5 * np.dot(momentum, momentum)
