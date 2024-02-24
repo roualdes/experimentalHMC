@@ -3,7 +3,7 @@ from .leapfrog import leapfrog
 from .initialize_draws import initialize_draws
 from .windowedadaptation import WindowedAdaptation
 from .metric_adapter import MetricOnlineMeanVar
-from .rand import choice_rand, normal_rand, uniform_rand
+from .rand import binomial_rand, choice_rand, normal_rand, uniform_rand
 from .rng import RNG
 from .step_size_adapter import StepSizeAdapter
 from .step_size_initializer import step_size_initializer
@@ -12,6 +12,7 @@ from .power_two import power_two
 from typing import Iterator
 
 import ctypes
+import math
 
 import numpy as np
 import numpy.typing as npt
@@ -34,6 +35,7 @@ class SBHMC():
                  max_leapfrogs = 1_000,
                  max_delta_H = 1_000.0,
                  cut_off = 0.0,
+                 p = 0.75,
                  **kwargs
                  ):
 
@@ -54,6 +56,7 @@ class SBHMC():
         self._max_leapfrogs = max_leapfrogs
         self._max_delta_H = max_delta_H
         self._cut_off = cut_off
+        self._p = p
 
         self._draws = np.zeros(shape = (self._chains, self._dims))
         if initial_draw is not None:
@@ -100,55 +103,31 @@ class SBHMC():
     def chains(self) -> int:
         return self._chains
 
-    def _u_turn(self, pb, pf, pt):
-        normb = np.linalg.norm(pb)
-        normf = np.linalg.norm(pf)
-        normt = np.linalg.norm(pt)
-        f = np.dot(pf, pt) / (normf * normt)
-        b = np.dot(pb, pt) / (normb * normt)
-        return f <= self._cut_off or b <= self._cut_off
+    def _u_turn(self, p, pt):
+        return np.dot(p, pt) <= self._cut_off
 
-    def _transition(self, position, rng, step_size, metric) -> tuple[float, bool, float]:
+    def _u_turn_steps(self, position, momentum, rng, step_size) -> tuple[bool, int, float]:
         alpha = 0.0
         n_leapfrog = 0
         H = 0.0
         divergent = False
 
-        u_turned = False
-
-        momentum = normal_rand(rng.key(), self._dims)
         position_new = position.copy()
         momentum_new = momentum.copy()
         gradient = np.empty_like(position_new)
 
         ld = self._log_density_gradient(position_new, gradient)
         H0 = -ld + 0.5 * np.dot(momentum_new, momentum_new)
-        direction = choice_rand(rng.key(), [-1, 1])
-
-        # one leapfrog backwards
-        position_backwards = position.copy()
-        momentum_backwards = momentum.copy()
-        gradient_backwards = gradient.copy()
-        leapfrog(position_backwards,
-                 momentum_backwards,
-                 -1 * direction * step_size * np.sqrt(metric),
-                 1,
-                 gradient_backwards,
-                 self._log_density_gradient)
 
         # momentum for u-turn checks
         momentum_subtree = momentum.copy()
         momentum_total = momentum_new.copy()
 
-        # memory efficient multinomial sampling along trajectory
-        position_prime = position.copy()
-        max_weight = -np.inf
-
         while n_leapfrog < self._max_leapfrogs:
             n_leapfrog += 1
             ld = leapfrog(position_new,
                           momentum_new,
-                          direction * step_size * np.sqrt(metric),
+                          step_size,
                           1,
                           gradient,
                           self._log_density_gradient)
@@ -170,36 +149,75 @@ class SBHMC():
             if divergent:
                 break
 
-            if exp_delta_H > max_weight:
-                position_prime = position_new.copy()
-                max_weight = exp_delta_H
-
             momentum_total += momentum_new
             # TODO count the various u_turns
-            u_turn_m_mn = self._u_turn(momentum, momentum_new, momentum_total)
-            u_turn_m_ms = self._u_turn(momentum, momentum_subtree, momentum_total)
-            u_turn_ms_mn = self._u_turn(momentum_subtree, momentum_new, momentum_total)
-            u_turn_mb_mn = self._u_turn(momentum_backwards, momentum_new, momentum_total)
-            u_turn_mb_ms = self._u_turn(momentum_backwards, momentum_subtree, momentum_total)
-
-            u_turned = u_turn_m_mn | u_turn_m_ms | u_turn_ms_mn | u_turn_mb_mn | u_turn_mb_ms
+            u_turn = self._u_turn(momentum, momentum_total)
+            u_turn |= self._u_turn(momentum_subtree, momentum_total)
+            u_turn |= self._u_turn(momentum_new, momentum_total)
 
             if power_two(n_leapfrog):
                 momentum_subtree = momentum_new.copy()
 
-            if u_turned:
+            if u_turn:
                 break
 
-        if not divergent:
-            position[:] = position_prime.copy()
-
         adapt_stat = alpha / n_leapfrog
-        return adapt_stat, divergent, H
+        return divergent, n_leapfrog, adapt_stat, H0
 
+    def _log_binomial(self, k, K):
+        if k > K:
+            return -np.inf
+        c = math.lgamma(K + 1) - math.lgamma(K - k + 1) - math.lgamma(k + 1)
+        d = k * np.log(self._p) + (K - k) * np.log1p(-self._p)
+        return c + d
+
+    def _transition(self, position, momentum, rng, step_size, metric) -> tuple[float, bool, float]:
+        direction = choice_rand(rng, [-1, 1])
+        epsilon = direction * step_size * np.sqrt(metric)
+        d, N, a, H0 = self._u_turn_steps(position.copy(), momentum.copy(), rng, epsilon)
+
+        divergent = d
+        if divergent:
+            return a, d, np.inf
+
+        n_leapfrog = N
+        adapt_stat = a
+
+        L = binomial_rand(rng, n_leapfrog, self._p)
+        position_new = position.copy()
+        momentum_new = momentum.copy()
+        gradient = np.empty_like(momentum_new)
+
+        ld = leapfrog(position_new,
+                      momentum_new,
+                      epsilon,
+                      L,
+                      gradient,
+                      self._log_density_gradient)
+        H1 = -ld + 0.5 * np.dot(momentum_new, momentum_new)
+
+        _, Nb, _, _ = self._u_turn_steps(position_new, momentum_new, rng, -epsilon)
+
+        r = H1 - H0 + self._log_binomial(L, N) - self._log_binomial(L, Nb)
+        if uniform_rand(rng) < np.minimum(1.0, np.exp(r)):
+            position[:] = position_new
+            energy = H1
+        else:
+            energy = H0
+        return adapt_stat, divergent, energy
 
     def sample(self) -> FloatArray:
         for chain in range(self._chains):
-            self._adapt_stat[chain], self._divergent[chain], self._energy[chain] = self._transition(self._draws[chain], self._rngs[chain], self._step_size[chain], self._metric[chain])
+            momentum = normal_rand(self._rngs[chain].key(), self._dims)
+            a, d, e = self._transition(self._draws[chain],
+                                       momentum,
+                                       self._rngs[chain].key(),
+                                       self._step_size[chain],
+                                       self._metric[chain])
+
+            self._adapt_stat[chain] = a
+            self._divergent[chain] = d
+            self._energy[chain] = e
 
             if self._iteration <= self._warmup:
                 self._step_size_adapter[chain].update(self._adapt_stat[chain])

@@ -45,3 +45,29 @@ def normal_rand(xoshiro_key, N: int = None):
         return z
     else:
         return rand_normal(xoshiro_key)
+
+def _rand_one_binomial(xoshiro_key, K, p):
+    if K == 0 or p == 0.0:
+        return 0
+
+    if p == 1.0:
+        return K
+
+    x = -1
+    S = 0
+    while S <= K:
+        g = np.ceil(np.log(uniform_rand(xoshiro_key)) / np.log1p(-p))
+        S += g
+        x += 1
+    return x
+
+def binomial_rand(xoshiro_key, K, p, N: int = None):
+    "Generate N Binomial(K, p) random numbers.  If N is None, N = 1."
+    if N is not None:
+        assert type(N) == int
+        x = -np.ones(N)
+        for s in range(size):
+            x[s] = _rand_one_binomial(xoshiro_key, K, p)
+        return x
+    else:
+        return _rand_one_binomial(xoshiro_key, K, p)

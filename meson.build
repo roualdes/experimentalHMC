@@ -8,7 +8,6 @@ subdir('experimentalhmc')
 
 py.install_sources(
     'experimentalhmc/__init__.py',
-    'experimentalhmc/adam.py',
     'experimentalhmc/convergence.py',
     'experimentalhmc/dual_average.py',
     'experimentalhmc/ehmc.py',
@@ -19,8 +18,10 @@ py.install_sources(
     'experimentalhmc/onlinemad.py',
     'experimentalhmc/onlinemeanvar.py',
     'experimentalhmc/onlinequantile.py',
+    'experimentalhmc/power_two.py',
     'experimentalhmc/rand.py',
     'experimentalhmc/rng.py',
+    'experimentalhmc/sbhmc.py',
     'experimentalhmc/stan.py',
     'experimentalhmc/step_size_adapter.py',
     'experimentalhmc/step_size_initializer.py',
