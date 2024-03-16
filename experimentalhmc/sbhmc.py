@@ -111,6 +111,7 @@ class SBHMC():
         n_leapfrog = 0
         H = 0.0
         divergent = False
+        dist = 0.0
 
         position_new = position.copy()
         momentum_new = momentum.copy()
@@ -118,10 +119,6 @@ class SBHMC():
 
         ld = self._log_density_gradient(position_new, gradient)
         H0 = -ld + 0.5 * np.dot(momentum_new, momentum_new)
-
-        # momentum for u-turn checks
-        momentum_subtree = momentum.copy()
-        momentum_total = momentum_new.copy()
 
         while n_leapfrog < self._max_leapfrogs:
             n_leapfrog += 1
@@ -149,27 +146,17 @@ class SBHMC():
             if divergent:
                 break
 
-            momentum_total += momentum_new
-            # TODO count the various u_turns
-            u_turn = self._u_turn(momentum, momentum_total)
-            u_turn |= self._u_turn(momentum_subtree, momentum_total)
-            u_turn |= self._u_turn(momentum_new, momentum_total)
-
-            if power_two(n_leapfrog):
-                momentum_subtree = momentum_new.copy()
+            new_dist = np.sum((position - position_new) ** 2)
+            if new_dist <= dist:
+                u_turn = True
+            else:
+                dist = new_dist
 
             if u_turn:
                 break
 
         adapt_stat = alpha / n_leapfrog
         return divergent, n_leapfrog, adapt_stat, H0
-
-    def _log_binomial(self, k, K):
-        if k > K:
-            return -np.inf
-        c = math.lgamma(K + 1) - math.lgamma(K - k + 1) - math.lgamma(k + 1)
-        d = k * np.log(self._p) + (K - k) * np.log1p(-self._p)
-        return c + d
 
     def _transition(self, position, momentum, rng, step_size, metric) -> tuple[float, bool, float]:
         direction = choice_rand(rng, [-1, 1])
@@ -198,7 +185,7 @@ class SBHMC():
 
         _, Nb, _, _ = self._u_turn_steps(position_new, momentum_new, rng, -epsilon)
 
-        r = H1 - H0 + self._log_binomial(L, N) - self._log_binomial(L, Nb)
+        r = H1 + np.log(N) - H0 - np.log(Nb + 1)
         if uniform_rand(rng) < np.minimum(1.0, np.exp(r)):
             position[:] = position_new
             energy = H1
